@@ -13,6 +13,7 @@ use esp_println as _;
 use esp_radio::wifi::{Config, Interface, Ssid, WifiController, ap::AccessPointConfig};
 use static_cell::StaticCell;
 
+use rusty_rocket_car::dhcp;
 use rusty_rocket_car::{AP_CHANNEL, AP_IP, AP_PASSWORD, AP_SSID};
 
 #[panic_handler]
@@ -85,14 +86,14 @@ async fn main(spawner: Spawner) -> ! {
 
     let resources = STACK_RESOURCES.init(StackResources::new());
     let seed = 1234;
-    let (_stack, runner) = embassy_net::new(device, net_config, resources, seed);
+    let (stack, runner) = embassy_net::new(device, net_config, resources, seed);
 
     info!("Network stack ready: [ IP: {:?} ]", AP_IP);
 
     spawner.spawn(net_task(runner).unwrap());
+    spawner.spawn(dhcp::dhcp_server_task(stack).unwrap());
 
     loop {
-        info!("AP alive...");
         Timer::after(Duration::from_secs(1)).await;
     }
 }
