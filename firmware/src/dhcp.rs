@@ -1,5 +1,4 @@
 use core::net::Ipv4Addr;
-use defmt::info;
 use embassy_net::Stack;
 use leasehund::{DhcpConfigBuilder, DhcpServer};
 

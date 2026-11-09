@@ -14,6 +14,7 @@ use esp_radio::wifi::{Config, Interface, Ssid, WifiController, ap::AccessPointCo
 use static_cell::StaticCell;
 
 use rusty_rocket_car::dhcp;
+use rusty_rocket_car::udp;
 use rusty_rocket_car::{AP_CHANNEL, AP_IP, AP_PASSWORD, AP_SSID};
 
 #[panic_handler]
@@ -92,6 +93,7 @@ async fn main(spawner: Spawner) -> ! {
 
     spawner.spawn(net_task(runner).unwrap());
     spawner.spawn(dhcp::dhcp_server_task(stack).unwrap());
+    spawner.spawn(udp::udp_task(stack).unwrap());
 
     loop {
         Timer::after(Duration::from_secs(1)).await;
