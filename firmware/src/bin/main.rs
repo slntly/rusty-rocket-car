@@ -48,6 +48,9 @@ async fn main(spawner: Spawner) -> ! {
 
     let servo_pin = peripherals.GPIO2;
 
+    let rng = esp_hal::rng::Rng::new();
+    let seed = (rng.random() as u64) << 32 | (rng.random() as u64);
+
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 66320);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
@@ -118,7 +121,6 @@ async fn main(spawner: Spawner) -> ! {
     });
 
     let resources = STACK_RESOURCES.init(StackResources::new());
-    let seed = 1234;
     let (stack, runner) = embassy_net::new(device, net_config, resources, seed);
 
     info!("AP started: `{}` (Ch: {})", AP_SSID, AP_CHANNEL);
