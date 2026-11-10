@@ -25,6 +25,7 @@ use rusty_rocket_car::dhcp;
 use rusty_rocket_car::servo;
 use rusty_rocket_car::udp;
 use rusty_rocket_car::{AP_CHANNEL, AP_IP, AP_PASSWORD, AP_SSID};
+use rusty_rocket_car::{SERVO_MAX_ANGLE, SERVO_SPEED};
 
 #[panic_handler]
 fn panic(panic_info: &core::panic::PanicInfo) -> ! {
@@ -45,14 +46,14 @@ async fn main(spawner: Spawner) -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
+    let servo_pin = peripherals.GPIO2;
+
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 66320);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
     info!("Rusty Rocket Car initialized!");
-
-    let servo_pin = peripherals.GPIO2;
 
     let mut ledc = Ledc::new(peripherals.LEDC);
     ledc.set_global_slow_clock(LSGlobalClkSource::APBClk);
@@ -69,7 +70,7 @@ async fn main(spawner: Spawner) -> ! {
 
     let servo = Servo::new(
         "steering",
-        ServoConfig::sg90(timer::config::Duty::Duty14Bit),
+        ServoConfig::default_servo(timer::config::Duty::Duty14Bit, SERVO_MAX_ANGLE, SERVO_SPEED),
         &mut ledc,
         lstimer0_static,
         channel::Number::Channel0,
