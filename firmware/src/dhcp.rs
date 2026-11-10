@@ -8,10 +8,10 @@ const SUBNET_MASK: Ipv4Addr = Ipv4Addr::new(255, 255, 255, 0);
 const IP_POOL_START: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 100);
 const IP_POOL_END: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 100);
 
-const MAX_CLIENTS: usize = 2; // maximum number of concurrent clients
+const MAX_CLIENTS: usize = 32; // maximum number of concurrent clients
 const MAX_DNS: usize = 1; // maximum number of DNS servers provided to clients
 
-const LEASE_TIME: u32 = 10; // seconds
+const LEASE_TIME: u32 = 60; // seconds
 
 #[embassy_executor::task]
 pub async fn dhcp_server_task(stack: Stack<'static>) {
