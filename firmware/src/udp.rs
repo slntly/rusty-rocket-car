@@ -1,7 +1,11 @@
-use defmt::{debug, error, info, warn};
+use defmt::{info, warn};
 use embassy_net::Stack;
 use embassy_net::udp::{PacketMetadata, UdpSocket};
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::channel::Channel;
 use embassy_time::Timer;
+
+pub static STEERING_CH: Channel<CriticalSectionRawMutex, i8, 10> = Channel::new();
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
@@ -16,14 +20,14 @@ impl Packet {
     #[inline]
     pub fn from_bytes(bytes: [u8; Self::SIZE]) -> Self {
         Self {
-            throttle: bytes[0] as i8,
-            steering: bytes[1] as i8,
+            throttle: (bytes[0] ^ 0x80) as i8,
+            steering: (bytes[1] ^ 0x80) as i8,
         }
     }
 
     #[inline]
     pub fn to_bytes(&self) -> [u8; Self::SIZE] {
-        [self.throttle as u8, self.steering as u8]
+        [(self.throttle as u8) ^ 0x80, (self.steering as u8) ^ 0x80]
     }
 }
 
@@ -42,11 +46,10 @@ pub async fn udp_task(stack: Stack<'static>) {
         &mut tx_buffer,
     );
 
-    if let Err(e) = socket.bind(8888) {
-        error!("Failed to bind UDP socket: {}", e);
-        loop {}
-    }
+    socket.bind(8888).expect("Failed to bind UDP socket");
     info!("UDP socket bound to port 8888");
+
+    let sender = STEERING_CH.sender();
 
     loop {
         let mut rx_buf = [0u8; 64];
@@ -58,7 +61,11 @@ pub async fn udp_task(stack: Stack<'static>) {
                     buf.copy_from_slice(&rx_buf[..Packet::SIZE]);
 
                     let rx_pkt = Packet::from_bytes(buf);
-                    debug!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
+                    info!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
+
+                    if let Err(_) = sender.try_send(rx_pkt.steering) {
+                        warn!("STEERING_CH is full, dropping frame");
+                    }
                 } else {
                     warn!(
                         "Unexpected packet size from {}: {} (expected {})",

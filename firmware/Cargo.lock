@@ -857,6 +857,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "esp-hal-servo"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e49ae75051b2fdec8e481599390e093a1bc7c91128709dd05f335fc750a94446"
+dependencies = [
+ "esp-hal",
+ "log",
+]
+
+[[package]]
 name = "esp-metadata-generated"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1806,12 +1816,14 @@ dependencies = [
  "defmt 1.2.0",
  "embassy-executor",
  "embassy-net",
+ "embassy-sync 0.8.0",
  "embassy-time",
  "embedded-io 0.7.1",
  "embedded-io-async 0.7.0",
  "esp-alloc",
  "esp-bootloader-esp-idf",
  "esp-hal",
+ "esp-hal-servo",
  "esp-println",
  "esp-radio",
  "esp-rtos",

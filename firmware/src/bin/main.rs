@@ -9,12 +9,20 @@ use embassy_executor::Spawner;
 use embassy_net::{Ipv4Cidr, StackResources, StaticConfigV4};
 use embassy_time::{Duration, Timer};
 use esp_hal::clock::CpuClock;
+use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_println as _;
 use esp_radio::wifi::{Config, Interface, Ssid, WifiController, ap::AccessPointConfig};
 use static_cell::StaticCell;
 
+// LEDC
+use esp_hal::ledc::timer::TimerIFace;
+use esp_hal::ledc::{LSGlobalClkSource, Ledc, LowSpeed, channel, timer};
+
+use esp_hal_servo::{Servo, ServoConfig};
+
 use rusty_rocket_car::dhcp;
+use rusty_rocket_car::servo;
 use rusty_rocket_car::udp;
 use rusty_rocket_car::{AP_CHANNEL, AP_IP, AP_PASSWORD, AP_SSID};
 
@@ -29,6 +37,7 @@ extern crate alloc;
 esp_bootloader_esp_idf::esp_app_desc!();
 
 static STACK_RESOURCES: StaticCell<StackResources<4>> = StaticCell::new();
+static TIMER_CELL: StaticCell<esp_hal::ledc::timer::Timer<'static, LowSpeed>> = StaticCell::new();
 
 #[allow(clippy::large_stack_frames)]
 #[esp_rtos::main]
@@ -42,6 +51,31 @@ async fn main(spawner: Spawner) -> ! {
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
     info!("Rusty Rocket Car initialized!");
+
+    let servo_pin = peripherals.GPIO2;
+
+    let mut ledc = Ledc::new(peripherals.LEDC);
+    ledc.set_global_slow_clock(LSGlobalClkSource::APBClk);
+    let mut lstimer0 = ledc.timer::<LowSpeed>(timer::Number::Timer0);
+    lstimer0
+        .configure(timer::config::Config {
+            duty: timer::config::Duty::Duty14Bit,
+            clock_source: timer::LSClockSource::APBClk,
+            frequency: Rate::from_hz(50),
+        })
+        .expect("Failed to configure LEDC timer");
+
+    let lstimer0_static = TIMER_CELL.init(lstimer0);
+
+    let servo = Servo::new(
+        "steering",
+        ServoConfig::sg90(timer::config::Duty::Duty14Bit),
+        &mut ledc,
+        lstimer0_static,
+        channel::Number::Channel0,
+        servo_pin,
+    )
+    .expect("Failed to configure servo");
 
     let mut wifi_controller = WifiController::new(peripherals.WIFI, Default::default())
         .expect("Failed to init Wi-Fi controller");
@@ -89,9 +123,13 @@ async fn main(spawner: Spawner) -> ! {
     info!("AP started: `{}` (Ch: {})", AP_SSID, AP_CHANNEL);
     info!("Static IP: {}", AP_IP);
 
+    // Network
     spawner.spawn(net_task(runner).expect("Failed to spawn net_task"));
     spawner.spawn(dhcp::dhcp_server_task(stack).expect("Failed to spawn dhcp_server_task"));
     spawner.spawn(udp::udp_task(stack).expect("Failed to spawn udp_task"));
+
+    // Hardware
+    spawner.spawn(servo::servo_task(servo).expect("Failed to spawn servo_task"));
 
     loop {
         Timer::after(Duration::from_secs(1)).await;

@@ -5,7 +5,11 @@ pub const AP_PASSWORD: &str = "";
 pub const AP_CHANNEL: u8 = 6;
 pub const AP_IP: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 1);
 
+// 1.0 — instant, 0.1 — very smooth
+pub const SERVO_SMOOTHING_K: f32 = 0.15;
+
 use core::net::Ipv4Addr;
 
 pub mod dhcp;
+pub mod servo;
 pub mod udp;
