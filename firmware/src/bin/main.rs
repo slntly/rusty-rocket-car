@@ -3,7 +3,8 @@
 #![deny(clippy::mem_forget)]
 #![deny(clippy::large_stack_frames)]
 
-use defmt::{error, info};
+use defmt::{error, info, warn};
+
 use embassy_executor::Spawner;
 use embassy_net::{Ipv4Cidr, StackResources, StaticConfigV4};
 use embassy_time::{Duration, Timer};
@@ -40,7 +41,7 @@ async fn main(spawner: Spawner) -> ! {
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
-    info!("Embassy initialized!");
+    info!("Rusty Rocket Car initialized!");
 
     let mut wifi_controller = WifiController::new(peripherals.WIFI, Default::default())
         .expect("Failed to init Wi-Fi controller");
@@ -49,6 +50,7 @@ async fn main(spawner: Spawner) -> ! {
         let ssid: Ssid = AP_SSID.try_into().unwrap();
 
         let auth_config = if AP_PASSWORD.is_empty() {
+            warn!("No access point password has been set; an open access point will be created");
             esp_radio::wifi::AuthenticationMethodConfig::Open
         } else {
             esp_radio::wifi::AuthenticationMethodConfig::Wpa2Personal(
@@ -72,11 +74,6 @@ async fn main(spawner: Spawner) -> ! {
         .set_max_tx_power(34) // 8.5 dBm
         .expect("Failed to set max TX power");
 
-    info!(
-        "Access Point started: [ SSID: {} | CH: {} ]",
-        AP_SSID, AP_CHANNEL
-    );
-
     let device = Interface::access_point();
 
     let net_config = embassy_net::Config::ipv4_static(StaticConfigV4 {
@@ -89,11 +86,12 @@ async fn main(spawner: Spawner) -> ! {
     let seed = 1234;
     let (stack, runner) = embassy_net::new(device, net_config, resources, seed);
 
-    info!("Network stack ready: [ IP: {:?} ]", AP_IP);
+    info!("AP started: `{}` (Ch: {})", AP_SSID, AP_CHANNEL);
+    info!("Static IP: {}", AP_IP);
 
-    spawner.spawn(net_task(runner).unwrap());
-    spawner.spawn(dhcp::dhcp_server_task(stack).unwrap());
-    spawner.spawn(udp::udp_task(stack).unwrap());
+    spawner.spawn(net_task(runner).expect("Failed to spawn net_task"));
+    spawner.spawn(dhcp::dhcp_server_task(stack).expect("Failed to spawn dhcp_server_task"));
+    spawner.spawn(udp::udp_task(stack).expect("Failed to spawn udp_task"));
 
     loop {
         Timer::after(Duration::from_secs(1)).await;

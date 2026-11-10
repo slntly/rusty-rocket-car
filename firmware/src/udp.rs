@@ -1,4 +1,4 @@
-use defmt::{info, warn};
+use defmt::{debug, error, info, warn};
 use embassy_net::Stack;
 use embassy_net::udp::{PacketMetadata, UdpSocket};
 use embassy_time::Timer;
@@ -42,7 +42,10 @@ pub async fn udp_task(stack: Stack<'static>) {
         &mut tx_buffer,
     );
 
-    socket.bind(8888).expect("Failed to bind UDP socket");
+    if let Err(e) = socket.bind(8888) {
+        error!("Failed to bind UDP socket: {}", e);
+        loop {}
+    }
     info!("UDP socket bound to port 8888");
 
     loop {
@@ -55,7 +58,7 @@ pub async fn udp_task(stack: Stack<'static>) {
                     buf.copy_from_slice(&rx_buf[..Packet::SIZE]);
 
                     let rx_pkt = Packet::from_bytes(buf);
-                    info!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
+                    debug!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
                 } else {
                     warn!(
                         "Unexpected packet size from {}: {} (expected {})",
