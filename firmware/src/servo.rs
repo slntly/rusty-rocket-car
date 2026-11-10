@@ -12,8 +12,8 @@ use crate::SERVO_SMOOTHING_K;
 pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
     let receiver: Receiver<'_, CriticalSectionRawMutex, i8, 10> = STEERING_CH.receiver();
 
-    let mut current_angle = 90.0f32;
-    let mut target_angle = 90.0f32;
+    let mut current_angle: f32 = 90.0;
+    let mut target_angle: f32 = 90.0;
 
     let mut ticker = Ticker::every(embassy_time::Duration::from_millis(20));
 
