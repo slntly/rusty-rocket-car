@@ -11,10 +11,7 @@ use embassy_time::{Duration, Timer};
 use esp_hal::clock::CpuClock;
 use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
-use esp_radio::wifi::{
-    Config, Interface, Ssid, WifiController,
-    ap::{AccessPointConfig, EventInfo},
-};
+use esp_radio::wifi::{Config, Interface, Ssid, WifiController, ap::AccessPointConfig};
 // Logging
 use defmt::{error, info, warn};
 use esp_println as _;
@@ -25,9 +22,8 @@ use esp_hal_servo::{Servo, ServoConfig};
 // Misc
 use static_cell::StaticCell;
 // Crate
-use rusty_rocket_car::dhcp;
-use rusty_rocket_car::servo;
-use rusty_rocket_car::udp;
+use rusty_rocket_car::hardware::servo;
+use rusty_rocket_car::network::{dhcp, misc, udp};
 use rusty_rocket_car::{AP_CHANNEL, AP_IP, AP_PASSWORD, AP_SSID, WIFI_MAX_TX_POWER};
 use rusty_rocket_car::{SERVO_MAX_ANGLE, SERVO_SPEED};
 
@@ -134,10 +130,12 @@ async fn main(spawner: Spawner) -> ! {
 
     // ─── Tasks ───────────────────────────────────────────────────────────
     // Network
-    spawner.spawn(net_task(runner).expect("Failed to spawn net_task"));
+    spawner.spawn(misc::net_task(runner).expect("Failed to spawn net_task"));
     spawner.spawn(dhcp::dhcp_server_task(stack).expect("Failed to spawn dhcp_server_task"));
     spawner.spawn(udp::udp_task(stack).expect("Failed to spawn udp_task"));
-    spawner.spawn(wifi_monitor_task(wifi_controller).expect("Failed to spawn wifi_monitor_task"));
+    spawner.spawn(
+        misc::wifi_monitor_task(wifi_controller).expect("Failed to spawn wifi_monitor_task"),
+    );
 
     // Hardware
     spawner.spawn(servo::servo_task(servo).expect("Failed to spawn servo_task"));
@@ -145,37 +143,5 @@ async fn main(spawner: Spawner) -> ! {
 
     loop {
         Timer::after(Duration::from_secs(1)).await;
-    }
-}
-
-#[embassy_executor::task]
-async fn net_task(mut runner: embassy_net::Runner<'static, Interface>) {
-    runner.run().await;
-}
-
-#[embassy_executor::task]
-async fn wifi_monitor_task(controller: WifiController<'static>) {
-    loop {
-        if let Ok(event) = controller
-            .wait_for_access_point_connected_event_async()
-            .await
-        {
-            match event {
-                EventInfo::Connected(info) => {
-                    let mac = info.mac;
-                    info!(
-                        "Device [{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}] connected",
-                        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
-                    )
-                }
-                EventInfo::Disconnected(info) => {
-                    let mac = info.mac;
-                    info!(
-                        "Device [{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}] disconnected",
-                        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
-                    )
-                }
-            }
-        }
     }
 }

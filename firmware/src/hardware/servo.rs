@@ -4,7 +4,7 @@ use embassy_time::Ticker;
 use esp_hal::ledc::LowSpeed;
 use esp_hal_servo::Servo;
 
-use crate::udp::STEERING_CH;
+use crate::network::udp::STEERING_CH;
 
 use crate::SERVO_SMOOTHING_K;
 

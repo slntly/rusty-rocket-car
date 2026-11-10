@@ -1,8 +1,7 @@
 #![no_std]
 
-pub mod dhcp;
-pub mod servo;
-pub mod udp;
+pub mod hardware;
+pub mod network;
 
 use core::net::Ipv4Addr;
 
