@@ -22,3 +22,13 @@ pub const SERVO_MAX_ANGLE: f32 = 180.0;
 pub const SERVO_SPEED: f32 = 60.0; // deg/s
 pub const SERVO_SMOOTHING_K: f32 = 0.15; // 1.0 — instant, 0.1 — very smooth
 // ─────────────────────────────────────────────────────────────────────
+
+// ─── Motor Settings ──────────────────────────────────────────────────
+// -> Configure the pins in the "Pins" section within
+//    the `main` function in `src/bin/main.rs`
+pub const MOTOR_MAX_SPEED: f32 = 100.0; // % PWM duty at full throttle
+pub const MOTOR_MIN_SPEED: f32 = 10.0; // % duty needed to overcome gearbox friction
+pub const MOTOR_DEAD_ZONE: f32 = 3.0; // % throttle ignored around neutral
+pub const MOTOR_SMOOTHING_K: f32 = 0.15; // 1.0 — instant, 0.1 — very smooth
+pub const MOTOR_PWM_FREQUENCY: u32 = 20_000; // Hz — above the audible range
+// ─────────────────────────────────────────────────────────────────────
