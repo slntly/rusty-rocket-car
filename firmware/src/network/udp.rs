@@ -65,12 +65,12 @@ pub async fn udp_task(stack: Stack<'static>) {
                     let rx_pkt = Packet::from_bytes(buf);
                     info!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
 
-                    if let Err(_) = throttle_sender.try_send(rx_pkt.throttle) {
-                        warn!("THROTTLE_CH is full, dropping frame");
+                    if let Err(e) = throttle_sender.try_send(rx_pkt.throttle) {
+                        warn!("THROTTLE_CH: Failed to send frame: {:?}", e);
                     }
 
-                    if let Err(_) = steering_sender.try_send(rx_pkt.steering) {
-                        warn!("STEERING_CH is full, dropping frame");
+                    if let Err(e) = steering_sender.try_send(rx_pkt.steering) {
+                        warn!("STEERING_CH: Failed to send frame: {:?}", e);
                     }
                 } else {
                     warn!(

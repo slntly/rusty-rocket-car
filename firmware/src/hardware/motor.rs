@@ -4,6 +4,7 @@ use embassy_time::{Duration, Ticker};
 use esp_hal::ledc::LowSpeed;
 use esp_hal::ledc::channel::{Channel, ChannelIFace};
 
+use crate::hardware::smooth;
 use crate::network::udp::THROTTLE_CH;
 use crate::{MOTOR_DEAD_ZONE, MOTOR_MAX_SPEED, MOTOR_MIN_SPEED, MOTOR_SMOOTHING_K};
 
@@ -25,13 +26,12 @@ pub async fn motor_task(in1: Channel<'static, LowSpeed>, in2: Channel<'static, L
             target_throttle = to_throttle(raw);
         }
 
-        let diff = target_throttle - current_throttle;
-
-        if diff.abs() > SMOOTHING_DEAD_ZONE {
-            current_throttle += diff * MOTOR_SMOOTHING_K;
-        } else {
-            current_throttle = target_throttle;
-        }
+        current_throttle = smooth(
+            current_throttle,
+            target_throttle,
+            MOTOR_SMOOTHING_K,
+            SMOOTHING_DEAD_ZONE,
+        );
 
         set_motor_duty(&in1, &in2, current_throttle);
 
