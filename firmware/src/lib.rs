@@ -19,6 +19,10 @@ pub const WIFI_MAX_TX_POWER: i8 = 34; // 8.5 dBm
 // -> Configure the pin in the "Pins" section within
 //    the `main` function in `src/bin/main.rs`
 pub const SERVO_MAX_ANGLE: f32 = 180.0;
+/// Usable steering range in degrees `[min, max]`, to keep the linkage away
+/// from the servo's mechanical end stops. Must lie within
+/// `0.0..=SERVO_MAX_ANGLE`.
+pub const SERVO_RANGE: [f32; 2] = [0.0, 180.0];
 pub const SERVO_SPEED: f32 = 60.0; // deg/s
 pub const SERVO_SMOOTHING_K: f32 = 0.15; // 1.0 — instant, 0.1 — very smooth
 // ─────────────────────────────────────────────────────────────────────
