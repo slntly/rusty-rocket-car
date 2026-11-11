@@ -4,14 +4,9 @@ use embassy_time::{Duration, Ticker};
 use esp_hal::ledc::LowSpeed;
 use esp_hal_servo::Servo;
 
-use crate::network::udp::STEERING_CH;
-
+use crate::SERVO_CONFIG_CH;
 use crate::hardware::smooth;
-use crate::{SERVO_RANGE, SERVO_SMOOTHING_K};
-
-const RANGE_MIN: f32 = SERVO_RANGE[0];
-const RANGE_MAX: f32 = SERVO_RANGE[1];
-const CENTER: f32 = (RANGE_MIN + RANGE_MAX) / 2.0;
+use crate::network::udp::STEERING_CH;
 
 const TICK_MS: u64 = 20;
 /// Snap threshold for the smoothing loop, in degrees.
@@ -19,22 +14,27 @@ const SMOOTHING_DEAD_ZONE: f32 = 0.2;
 
 #[embassy_executor::task]
 pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
+    let config = SERVO_CONFIG_CH.receive().await;
     let receiver: Receiver<'_, CriticalSectionRawMutex, i8, 10> = STEERING_CH.receiver();
 
-    let mut current_angle: f32 = CENTER;
+    let range_min = config.range[0];
+    let range_max = config.range[1];
+    let center = (range_min + range_max) / 2.0;
+
+    let mut current_angle: f32 = center;
     let mut target_angle: f32 = current_angle;
 
     let mut ticker = Ticker::every(Duration::from_millis(TICK_MS));
 
     loop {
         while let Ok(raw) = receiver.try_receive() {
-            target_angle = RANGE_MIN + to_angle(raw) * (RANGE_MAX - RANGE_MIN);
+            target_angle = range_min + to_angle(raw) * (range_max - range_min);
         }
 
         current_angle = smooth(
             current_angle,
             target_angle,
-            SERVO_SMOOTHING_K,
+            config.smoothing_k,
             SMOOTHING_DEAD_ZONE,
         );
         servo.set_angle(current_angle);

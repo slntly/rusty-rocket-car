@@ -4,9 +4,10 @@ use embassy_time::{Duration, Ticker};
 use esp_hal::ledc::LowSpeed;
 use esp_hal::ledc::channel::{Channel, ChannelIFace};
 
+use crate::MOTOR_CONFIG_CH;
+use crate::config::MotorConfig;
 use crate::hardware::smooth;
 use crate::network::udp::THROTTLE_CH;
-use crate::{MOTOR_DEAD_ZONE, MOTOR_MAX_SPEED, MOTOR_MIN_SPEED, MOTOR_SMOOTHING_K};
 
 const TICK_MS: u64 = 20;
 /// Snap threshold for the smoothing loop.
@@ -14,6 +15,7 @@ const SMOOTHING_DEAD_ZONE: f32 = 0.2;
 
 #[embassy_executor::task]
 pub async fn motor_task(in1: Channel<'static, LowSpeed>, in2: Channel<'static, LowSpeed>) {
+    let config = MOTOR_CONFIG_CH.receive().await;
     let receiver: Receiver<'_, CriticalSectionRawMutex, i8, 10> = THROTTLE_CH.receiver();
 
     let mut current_throttle: f32 = 0.0;
@@ -23,41 +25,47 @@ pub async fn motor_task(in1: Channel<'static, LowSpeed>, in2: Channel<'static, L
 
     loop {
         while let Ok(raw) = receiver.try_receive() {
-            target_throttle = to_throttle(raw);
+            target_throttle = to_throttle(raw, config.speed_range[1]);
         }
 
         current_throttle = smooth(
             current_throttle,
             target_throttle,
-            MOTOR_SMOOTHING_K,
+            config.smoothing_k,
             SMOOTHING_DEAD_ZONE,
         );
 
-        set_motor_duty(&in1, &in2, current_throttle);
+        set_motor_duty(&in1, &in2, current_throttle, config);
 
         ticker.next().await;
     }
 }
 
 /// Maps the signed throttle byte to a signed percentage of the motor's
-/// maximum speed (`-MOTOR_MAX_SPEED..=MOTOR_MAX_SPEED`).
+/// maximum speed (`-max_speed..=max_speed`).
 #[inline]
-fn to_throttle(val: i8) -> f32 {
-    (val as f32 / i8::MAX as f32).clamp(-1.0, 1.0) * MOTOR_MAX_SPEED
+fn to_throttle(val: i8, max_speed: f32) -> f32 {
+    (val as f32 / i8::MAX as f32).clamp(-1.0, 1.0) * max_speed
 }
 
 /// Drives an H-bridge in sign-magnitude mode: one input receives the PWM
 /// signal while the other is held low. Both inputs low means coasting.
-fn set_motor_duty(in1: &Channel<'_, LowSpeed>, in2: &Channel<'_, LowSpeed>, throttle: f32) {
-    let magnitude = throttle.abs().clamp(0.0, MOTOR_MAX_SPEED);
+fn set_motor_duty(
+    in1: &Channel<'_, LowSpeed>,
+    in2: &Channel<'_, LowSpeed>,
+    throttle: f32,
+    config: &MotorConfig,
+) {
+    let max_speed = config.speed_range[1];
+    let magnitude = throttle.abs().clamp(0.0, max_speed);
 
-    let duty = if magnitude <= MOTOR_DEAD_ZONE {
+    let duty = if magnitude <= config.dead_zone {
         0
     } else {
-        let min_speed = MOTOR_MIN_SPEED.clamp(0.0, MOTOR_MAX_SPEED);
-        let span = (MOTOR_MAX_SPEED - MOTOR_DEAD_ZONE).max(f32::EPSILON);
-        let normalized = (magnitude - MOTOR_DEAD_ZONE) / span;
-        let duty = min_speed + normalized * (MOTOR_MAX_SPEED - min_speed);
+        let min_speed = config.speed_range[0].clamp(0.0, max_speed);
+        let span = (max_speed - config.dead_zone).max(f32::EPSILON);
+        let normalized = (magnitude - config.dead_zone) / span;
+        let duty = min_speed + normalized * (max_speed - min_speed);
 
         duty.clamp(0.0, 100.0) as u8
     };
