@@ -57,6 +57,7 @@ async fn main(spawner: Spawner) -> ! {
     let peripherals = esp_hal::init(config);
 
     let rng = esp_hal::rng::Rng::new();
+    // Generate 64-bit seed for network stack from RNG
     let seed = (rng.random() as u64) << 32 | (rng.random() as u64);
 
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 66320);
@@ -79,6 +80,7 @@ async fn main(spawner: Spawner) -> ! {
     };
 
     let mut servo_config = ServoConfig {
+        // use `degrade()` to convert `GPIOx` into `AnyPin`.
         pin: Some(peripherals.GPIO2.degrade()),
         max_angle: 180.0,    // the maximum angle to which a servo can rotate
         range: [0.0, 180.0], // [min, max] usable steering range in degrees
@@ -88,6 +90,7 @@ async fn main(spawner: Spawner) -> ! {
     };
 
     let mut motor_config = MotorConfig {
+        // use `degrade` to convert `GPIOx` into `AnyPin`.
         in1: Some(peripherals.GPIO3.degrade()),
         in2: Some(peripherals.GPIO4.degrade()),
         speed_range: [10.0, 100.0], // [min, max]
@@ -174,14 +177,17 @@ async fn main(spawner: Spawner) -> ! {
     let mut wifi_controller = WifiController::new(peripherals.WIFI, Default::default())
         .expect("Failed to init Wi-Fi controller");
 
-    let ssid: Ssid = wifi_config.ssid.try_into().unwrap();
+    let ssid: Ssid = wifi_config.ssid.try_into().expect("Invalid SSID format");
 
     let auth_config = if wifi_config.password.is_empty() {
         warn!("No access point password has been set; an open access point will be created");
         esp_radio::wifi::AuthenticationMethodConfig::Open
     } else {
         esp_radio::wifi::AuthenticationMethodConfig::Wpa2Personal(
-            wifi_config.password.try_into().unwrap(),
+            wifi_config
+                .password
+                .try_into()
+                .expect("Invalid password format"),
         )
     };
 
@@ -242,6 +248,7 @@ async fn main(spawner: Spawner) -> ! {
     );
     // ─────────────────────────────────────────────────────────────────────
 
+    // main() will wait indefinitely for other tasks to complete
     loop {
         Timer::after(Duration::from_secs(1)).await;
     }
