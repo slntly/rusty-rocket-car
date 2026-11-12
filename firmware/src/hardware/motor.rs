@@ -4,8 +4,7 @@ use embassy_time::{Duration, Ticker};
 use esp_hal::ledc::LowSpeed;
 use esp_hal::ledc::channel::{Channel, ChannelIFace};
 
-use crate::MOTOR_CONFIG_CH;
-use crate::config::MotorConfig;
+use crate::config::{MOTOR_CONFIG_CH, MotorConfig};
 use crate::hardware::smooth;
 use crate::network::udp::THROTTLE_CH;
 

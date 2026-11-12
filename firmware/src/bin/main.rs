@@ -22,14 +22,16 @@ use esp_hal::ledc::timer::TimerIFace;
 use esp_hal::ledc::{LSGlobalClkSource, Ledc, LowSpeed, channel, timer};
 use esp_hal_servo::{Servo, ServoConfig as SC};
 // Misc
+use core::net::Ipv4Addr;
 use static_cell::StaticCell;
-// Crate
+
+// Config
+use rusty_rocket_car::config::{MOTOR_CONFIG_CELL, SERVO_CONFIG_CELL, WIFI_CONFIG_CELL};
+use rusty_rocket_car::config::{MOTOR_CONFIG_CH, SERVO_CONFIG_CH, WIFI_CONFIG_CH};
 use rusty_rocket_car::config::{MotorConfig, ServoConfig, WiFiConfig};
+// Modules
 use rusty_rocket_car::hardware::{motor, servo};
 use rusty_rocket_car::network::{dhcp, misc, udp};
-use rusty_rocket_car::{MOTOR_CONFIG_CH, SERVO_CONFIG_CH, WIFI_CONFIG_CH};
-
-use core::net::Ipv4Addr;
 
 #[panic_handler]
 fn panic(panic_info: &core::panic::PanicInfo) -> ! {
@@ -46,9 +48,6 @@ static SERVO_TIMER_CELL: StaticCell<esp_hal::ledc::timer::Timer<'static, LowSpee
     StaticCell::new();
 static MOTOR_TIMER_CELL: StaticCell<esp_hal::ledc::timer::Timer<'static, LowSpeed>> =
     StaticCell::new();
-static WIFI_CONFIG_CELL: StaticCell<WiFiConfig> = StaticCell::new();
-static SERVO_CONFIG_CELL: StaticCell<ServoConfig> = StaticCell::new();
-static MOTOR_CONFIG_CELL: StaticCell<MotorConfig> = StaticCell::new();
 
 #[allow(clippy::large_stack_frames)]
 #[esp_rtos::main]

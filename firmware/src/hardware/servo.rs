@@ -4,7 +4,7 @@ use embassy_time::{Duration, Ticker};
 use esp_hal::ledc::LowSpeed;
 use esp_hal_servo::Servo;
 
-use crate::SERVO_CONFIG_CH;
+use crate::config::SERVO_CONFIG_CH;
 use crate::hardware::smooth;
 use crate::network::udp::STEERING_CH;
 

@@ -2,7 +2,18 @@
 // !!! THE FIRMWARE IS CONFIGURED IN `src/bin/main.rs`
 
 use core::net::Ipv4Addr;
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::channel::Channel;
 use esp_hal::gpio::AnyPin;
+use static_cell::StaticCell;
+
+pub static WIFI_CONFIG_CH: Channel<CriticalSectionRawMutex, &WiFiConfig, 1> = Channel::new();
+pub static SERVO_CONFIG_CH: Channel<CriticalSectionRawMutex, &ServoConfig, 1> = Channel::new();
+pub static MOTOR_CONFIG_CH: Channel<CriticalSectionRawMutex, &MotorConfig, 1> = Channel::new();
+
+pub static WIFI_CONFIG_CELL: StaticCell<WiFiConfig> = StaticCell::new();
+pub static SERVO_CONFIG_CELL: StaticCell<ServoConfig> = StaticCell::new();
+pub static MOTOR_CONFIG_CELL: StaticCell<MotorConfig> = StaticCell::new();
 
 pub struct WiFiConfig {
     pub ssid: &'static str,

@@ -2,7 +2,7 @@ use core::net::Ipv4Addr;
 use embassy_net::Stack;
 use leasehund::{DhcpConfigBuilder, DhcpServer};
 
-use crate::WIFI_CONFIG_CH;
+use crate::config::WIFI_CONFIG_CH;
 
 const SUBNET_MASK: Ipv4Addr = Ipv4Addr::new(255, 255, 255, 0);
 const IP_POOL_START: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 100);
