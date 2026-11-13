@@ -1,12 +1,10 @@
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::channel::Receiver;
 use embassy_time::{Duration, Ticker};
 use esp_hal::ledc::LowSpeed;
 use esp_hal::ledc::channel::{Channel, ChannelIFace};
 
 use crate::config::{MOTOR_CONFIG_CH, MotorConfig};
 use crate::hardware::smooth;
-use crate::network::udp::THROTTLE_CH;
+use crate::network::udp::THROTTLE_PS;
 
 const TICK_MS: u64 = 20;
 /// Snap threshold for the smoothing loop.
@@ -15,7 +13,9 @@ const SMOOTHING_DEAD_ZONE: f32 = 0.2;
 #[embassy_executor::task]
 pub async fn motor_task(in1: Channel<'static, LowSpeed>, in2: Channel<'static, LowSpeed>) {
     let config = MOTOR_CONFIG_CH.receive().await;
-    let receiver: Receiver<'_, CriticalSectionRawMutex, i8, 10> = THROTTLE_CH.receiver();
+    let mut subscriber = THROTTLE_PS
+        .subscriber()
+        .expect("THROTTLE_PS: subscriber already taken");
 
     let mut current_throttle: f32 = 0.0;
     let mut target_throttle: f32 = 0.0;
@@ -23,7 +23,7 @@ pub async fn motor_task(in1: Channel<'static, LowSpeed>, in2: Channel<'static, L
     let mut ticker = Ticker::every(Duration::from_millis(TICK_MS));
 
     loop {
-        while let Ok(raw) = receiver.try_receive() {
+        while let Some(raw) = subscriber.try_next_message_pure() {
             target_throttle = to_throttle(raw, config.speed_range[1]);
         }
 

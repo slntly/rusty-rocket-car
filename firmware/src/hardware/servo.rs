@@ -1,12 +1,10 @@
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::channel::Receiver;
 use embassy_time::{Duration, Ticker};
 use esp_hal::ledc::LowSpeed;
 use esp_hal_servo::Servo;
 
 use crate::config::SERVO_CONFIG_CH;
 use crate::hardware::smooth;
-use crate::network::udp::STEERING_CH;
+use crate::network::udp::STEERING_PS;
 
 const TICK_MS: u64 = 20;
 /// Snap threshold for the smoothing loop, in degrees.
@@ -15,7 +13,9 @@ const SMOOTHING_DEAD_ZONE: f32 = 0.2;
 #[embassy_executor::task]
 pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
     let config = SERVO_CONFIG_CH.receive().await;
-    let receiver: Receiver<'_, CriticalSectionRawMutex, i8, 10> = STEERING_CH.receiver();
+    let mut subscriber = STEERING_PS
+        .subscriber()
+        .expect("STEERING_PS: subscriber already taken");
 
     let range_min = config.range[0];
     let range_max = config.range[1];
@@ -27,7 +27,7 @@ pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
     let mut ticker = Ticker::every(Duration::from_millis(TICK_MS));
 
     loop {
-        while let Ok(raw) = receiver.try_receive() {
+        while let Some(raw) = subscriber.try_next_message_pure() {
             target_angle = range_min + to_angle(raw) * (range_max - range_min);
         }
 

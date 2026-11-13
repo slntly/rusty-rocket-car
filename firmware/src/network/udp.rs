@@ -2,11 +2,11 @@ use defmt::{info, warn};
 use embassy_net::Stack;
 use embassy_net::udp::{PacketMetadata, UdpSocket};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::channel::Channel;
+use embassy_sync::pubsub::PubSubChannel;
 use embassy_time::Timer;
 
-pub static THROTTLE_CH: Channel<CriticalSectionRawMutex, i8, 10> = Channel::new();
-pub static STEERING_CH: Channel<CriticalSectionRawMutex, i8, 10> = Channel::new();
+pub static THROTTLE_PS: PubSubChannel<CriticalSectionRawMutex, i8, 10, 1, 1> = PubSubChannel::new();
+pub static STEERING_PS: PubSubChannel<CriticalSectionRawMutex, i8, 10, 1, 1> = PubSubChannel::new();
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
@@ -50,8 +50,8 @@ pub async fn udp_task(stack: Stack<'static>) {
     socket.bind(8888).expect("Failed to bind UDP socket");
     info!("UDP socket bound to port 8888");
 
-    let throttle_sender = THROTTLE_CH.sender();
-    let steering_sender = STEERING_CH.sender();
+    let throttle_publisher = THROTTLE_PS.immediate_publisher();
+    let steering_publisher = STEERING_PS.immediate_publisher();
 
     loop {
         let mut rx_buf = [0u8; 64];
@@ -65,13 +65,8 @@ pub async fn udp_task(stack: Stack<'static>) {
                     let rx_pkt = Packet::from_bytes(buf);
                     info!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
 
-                    if let Err(e) = throttle_sender.try_send(rx_pkt.throttle) {
-                        warn!("THROTTLE_CH: Failed to send frame: {:?}", e);
-                    }
-
-                    if let Err(e) = steering_sender.try_send(rx_pkt.steering) {
-                        warn!("STEERING_CH: Failed to send frame: {:?}", e);
-                    }
+                    throttle_publisher.publish_immediate(rx_pkt.throttle);
+                    steering_publisher.publish_immediate(rx_pkt.steering);
                 } else {
                     warn!(
                         "Unexpected packet size from {}: {} (expected {})",
