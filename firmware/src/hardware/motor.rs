@@ -3,6 +3,7 @@ use esp_hal::ledc::LowSpeed;
 use esp_hal::ledc::channel::{Channel, ChannelIFace};
 
 use crate::config::{MOTOR_CONFIG_CH, MotorConfig};
+use crate::failsafe;
 use crate::hardware::smooth;
 use crate::network::udp::THROTTLE_PS;
 
@@ -27,9 +28,16 @@ pub async fn motor_task(in1: Channel<'static, LowSpeed>, in2: Channel<'static, L
             target_throttle = to_throttle(raw, config.speed_range[1]);
         }
 
+        // While the failsafe is engaged, ease towards zero (motor coasting).
+        let target = if failsafe::is_stopped() {
+            0.0
+        } else {
+            target_throttle
+        };
+
         current_throttle = smooth(
             current_throttle,
-            target_throttle,
+            target,
             config.smoothing_k,
             SMOOTHING_DEAD_ZONE,
         );

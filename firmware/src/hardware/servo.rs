@@ -3,6 +3,7 @@ use esp_hal::ledc::LowSpeed;
 use esp_hal_servo::Servo;
 
 use crate::config::SERVO_CONFIG_CH;
+use crate::failsafe;
 use crate::hardware::smooth;
 use crate::network::udp::STEERING_PS;
 
@@ -22,7 +23,7 @@ pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
     let center = (range_min + range_max) / 2.0;
 
     let mut current_angle: f32 = center;
-    let mut target_angle: f32 = current_angle;
+    let mut target_angle: f32 = center;
 
     let mut ticker = Ticker::every(Duration::from_millis(TICK_MS));
 
@@ -31,9 +32,16 @@ pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
             target_angle = range_min + to_angle(raw) * (range_max - range_min);
         }
 
+        // While the failsafe is engaged, ease towards the neutral center.
+        let target = if failsafe::is_stopped() {
+            center
+        } else {
+            target_angle
+        };
+
         current_angle = smooth(
             current_angle,
-            target_angle,
+            target,
             config.smoothing_k,
             SMOOTHING_DEAD_ZONE,
         );
