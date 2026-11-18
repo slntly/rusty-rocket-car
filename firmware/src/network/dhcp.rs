@@ -6,7 +6,7 @@ use crate::config::WIFI_CONFIG_CH;
 
 const SUBNET_MASK: Ipv4Addr = Ipv4Addr::new(255, 255, 255, 0);
 const IP_POOL_START: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 100);
-const IP_POOL_END: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 100);
+const IP_POOL_END: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 105);
 
 const MAX_CLIENTS: usize = 32; // maximum number of concurrent clients
 const MAX_DNS: usize = 1; // maximum number of DNS servers provided to clients
