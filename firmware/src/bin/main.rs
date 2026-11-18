@@ -32,7 +32,7 @@ use rusty_rocket_car::config::{MotorConfig, ServoConfig, WiFiConfig};
 // Modules
 use rusty_rocket_car::failsafe;
 use rusty_rocket_car::hardware::{motor, servo};
-use rusty_rocket_car::network::{dhcp, misc, udp, wifi_monitor};
+use rusty_rocket_car::network::{dhcp, net_task, udp, wifi_monitor};
 
 #[panic_handler]
 fn panic(panic_info: &core::panic::PanicInfo) -> ! {
@@ -242,7 +242,7 @@ async fn main(spawner: Spawner) -> ! {
         .spawn(failsafe::failsafe_task(FAILSAFE_TIMEOUT).expect("Failed to spawn failsafe_task"));
 
     // Network
-    spawner.spawn(misc::net_task(runner).expect("Failed to spawn net_task"));
+    spawner.spawn(net_task(runner).expect("Failed to spawn net_task"));
     spawner.spawn(dhcp::dhcp_server_task(stack).expect("Failed to spawn dhcp_server_task"));
     spawner.spawn(udp::udp_task(stack).expect("Failed to spawn udp_task"));
     spawner.spawn(
