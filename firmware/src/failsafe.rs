@@ -3,8 +3,8 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::watch::Watch;
 use embassy_time::{Duration, Instant, Ticker};
 
-use crate::network::misc::{WIFI_EVENT_CH, WifiEvent};
 use crate::network::udp::PACKET_SIGNAL;
+use crate::network::wifi_monitor::{WIFI_EVENT_CH, WifiEvent};
 
 /// Interval at which the failsafe re-evaluates its inputs.
 const TICK_MS: u64 = 20;

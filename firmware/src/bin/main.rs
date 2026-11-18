@@ -32,7 +32,7 @@ use rusty_rocket_car::config::{MotorConfig, ServoConfig, WiFiConfig};
 // Modules
 use rusty_rocket_car::failsafe;
 use rusty_rocket_car::hardware::{motor, servo};
-use rusty_rocket_car::network::{dhcp, misc, udp};
+use rusty_rocket_car::network::{dhcp, misc, udp, wifi_monitor};
 
 #[panic_handler]
 fn panic(panic_info: &core::panic::PanicInfo) -> ! {
@@ -246,7 +246,8 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(dhcp::dhcp_server_task(stack).expect("Failed to spawn dhcp_server_task"));
     spawner.spawn(udp::udp_task(stack).expect("Failed to spawn udp_task"));
     spawner.spawn(
-        misc::wifi_monitor_task(wifi_controller).expect("Failed to spawn wifi_monitor_task"),
+        wifi_monitor::wifi_monitor_task(wifi_controller)
+            .expect("Failed to spawn wifi_monitor_task"),
     );
 
     // Hardware
