@@ -1,17 +1,40 @@
 # Keep compilation settings in this file and user/runtime settings in `esp-config.toml`.
 include = ["esp-config.toml"]
 
-[target.riscv32imc-unknown-none-elf]
-runner = "espflash flash --monitor --chip esp32c3 --log-format defmt"
-
+# The chip is selected with Cargo features, but the target triple cannot be
+# selected that way. Pass the matching `--target` on the command line (see the
+# README) or change the default below.
 [build]
+target = "riscv32imc-unknown-none-elf"
+
+[unstable]
+build-std = ["alloc", "core"]
+
+# `espflash` detects the chip automatically, so the runner works for every
+# supported target.
+
+[target.riscv32imc-unknown-none-elf]
+runner = "espflash flash --monitor --log-format defmt"
 rustflags = [
   # Required to obtain backtraces (e.g. when using the "esp-backtrace" crate.)
   # NOTE: May negatively impact performance of produced code
   "-C", "force-frame-pointers",
 ]
 
-target = "riscv32imc-unknown-none-elf"
+[target.riscv32imac-unknown-none-elf]
+runner = "espflash flash --monitor --log-format defmt"
+rustflags = [
+  "-C", "force-frame-pointers",
+]
 
-[unstable]
-build-std = ["alloc", "core"]
+[target.xtensa-esp32-none-elf]
+runner = "espflash flash --monitor --log-format defmt"
+rustflags = ["-C", "link-arg=-nostartfiles"]
+
+[target.xtensa-esp32s2-none-elf]
+runner = "espflash flash --monitor --log-format defmt"
+rustflags = ["-C", "link-arg=-nostartfiles"]
+
+[target.xtensa-esp32s3-none-elf]
+runner = "espflash flash --monitor --log-format defmt"
+rustflags = ["-C", "link-arg=-nostartfiles"]

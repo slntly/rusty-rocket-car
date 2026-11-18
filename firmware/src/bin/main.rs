@@ -64,7 +64,9 @@ async fn main(spawner: Spawner) -> ! {
     // Generate 64-bit seed for network stack from RNG
     let seed = (rng.random() as u64) << 32 | (rng.random() as u64);
 
-    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 66320);
+    // 64 KiB fits in the reclaimed DRAM of every supported chip (the smallest
+    // region is the ESP32-C6's, which has exactly 64 KiB available).
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
