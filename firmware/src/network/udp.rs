@@ -3,10 +3,14 @@ use embassy_net::Stack;
 use embassy_net::udp::{PacketMetadata, UdpSocket};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::pubsub::PubSubChannel;
+use embassy_sync::signal::Signal;
 use embassy_time::Timer;
 
 pub static THROTTLE_PS: PubSubChannel<CriticalSectionRawMutex, i8, 10, 1, 1> = PubSubChannel::new();
 pub static STEERING_PS: PubSubChannel<CriticalSectionRawMutex, i8, 10, 1, 1> = PubSubChannel::new();
+
+/// Notifies the failsafe task that the control stream is still alive.
+pub static PACKET_SIGNAL: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
@@ -67,6 +71,7 @@ pub async fn udp_task(stack: Stack<'static>) {
 
                     throttle_publisher.publish_immediate(rx_pkt.throttle);
                     steering_publisher.publish_immediate(rx_pkt.steering);
+                    PACKET_SIGNAL.signal(());
                 } else {
                     warn!(
                         "Unexpected packet size from {}: {} (expected {})",

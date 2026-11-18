@@ -30,6 +30,7 @@ use rusty_rocket_car::config::{MOTOR_CONFIG_CELL, SERVO_CONFIG_CELL, WIFI_CONFIG
 use rusty_rocket_car::config::{MOTOR_CONFIG_CH, SERVO_CONFIG_CH, WIFI_CONFIG_CH};
 use rusty_rocket_car::config::{MotorConfig, ServoConfig, WiFiConfig};
 // Modules
+use rusty_rocket_car::failsafe;
 use rusty_rocket_car::hardware::{motor, servo};
 use rusty_rocket_car::network::{dhcp, misc, udp};
 
@@ -48,6 +49,9 @@ static SERVO_TIMER_CELL: StaticCell<esp_hal::ledc::timer::Timer<'static, LowSpee
     StaticCell::new();
 static MOTOR_TIMER_CELL: StaticCell<esp_hal::ledc::timer::Timer<'static, LowSpeed>> =
     StaticCell::new();
+
+/// Time without control packets before the failsafe stops the actuators.
+const FAILSAFE_TIMEOUT: Duration = Duration::from_millis(150);
 
 #[allow(clippy::large_stack_frames)]
 #[esp_rtos::main]
@@ -233,6 +237,10 @@ async fn main(spawner: Spawner) -> ! {
     // ─────────────────────────────────────────────────────────────────────
 
     // ─── Tasks ───────────────────────────────────────────────────────────
+    // Failsafe
+    spawner
+        .spawn(failsafe::failsafe_task(FAILSAFE_TIMEOUT).expect("Failed to spawn failsafe_task"));
+
     // Network
     spawner.spawn(misc::net_task(runner).expect("Failed to spawn net_task"));
     spawner.spawn(dhcp::dhcp_server_task(stack).expect("Failed to spawn dhcp_server_task"));
