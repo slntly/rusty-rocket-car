@@ -119,6 +119,11 @@ esp32s3 = [
   "esp-println/esp32s3",
   "esp-bootloader-esp-idf/esp32s3",
 ]
+# SuperMini boards have a notoriously poor antenna layout, so the firmware
+# lowers the maximum TX power for them to avoid unstable Wi-Fi. Enable this
+# together with the chip feature, e.g. `--features esp32c3,supermini`.
+supermini = []
+
 # For fine tuning these settings, please refer to https://doc.rust-lang.org/cargo/reference/profiles.html
 [profile.dev]
 # The default debug profile is too slow and too big for resource-constrained devices.

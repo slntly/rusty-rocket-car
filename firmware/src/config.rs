@@ -20,7 +20,6 @@ pub struct WiFiConfig {
     pub password: &'static str,
     pub ip: Ipv4Addr,
     pub channel: u8,
-    pub max_tx_power: i8,
 }
 
 pub struct ServoConfig {

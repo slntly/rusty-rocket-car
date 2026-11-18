@@ -80,9 +80,6 @@ async fn main(spawner: Spawner) -> ! {
         password: "", // If password not specified, an open AP will be created.
         ip: Ipv4Addr::new(192, 168, 4, 1),
         channel: 6, // Wi-Fi channel
-        // Note: The ESP32-C3 SuperMini works poorly with values
-        // higher than 34; it is not recommended to set it above 40.
-        max_tx_power: 34, // Power unit is 0.25 dBm.
     };
 
     let mut servo_config = ServoConfig {
@@ -206,8 +203,12 @@ async fn main(spawner: Spawner) -> ! {
         .set_config(&Config::AccessPoint(ap_config))
         .expect("Failed to set AP config");
 
+    // SuperMini boards have a notoriously poor antenna layout, so cap the TX
+    // power to keep Wi-Fi stable. Unit is 0.25 dBm; values above 34 are not
+    // recommended for these boards.
+    #[cfg(feature = "supermini")]
     wifi_controller
-        .set_max_tx_power(wifi_config.max_tx_power)
+        .set_max_tx_power(34)
         .expect("Failed to set max TX power");
 
     let device = Interface::access_point();
