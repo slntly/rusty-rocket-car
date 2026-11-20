@@ -57,25 +57,20 @@ pub async fn wifi_task(mut controller: WifiController<'static>) {
             .await
         {
             match event {
-                EventInfo::Connected(info) => {
-                    let mac = info.mac;
-                    info!(
-                        "Device [{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}] connected",
-                        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
-                    );
-
-                    WIFI_EVENT_CH.send(WiFiEvent::Connected).await;
-                }
+                EventInfo::Connected(info) => wifi_event(info.mac, WiFiEvent::Connected).await,
                 EventInfo::Disconnected(info) => {
-                    let mac = info.mac;
-                    info!(
-                        "Device [{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}] disconnected",
-                        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
-                    );
-
-                    WIFI_EVENT_CH.send(WiFiEvent::Disconnected).await;
+                    wifi_event(info.mac, WiFiEvent::Disconnected).await
                 }
             }
         }
     }
+}
+
+async fn wifi_event(mac: [u8; 6], event: WiFiEvent) {
+    WIFI_EVENT_CH.send(event).await;
+
+    info!(
+        "Device [{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}] {:?}",
+        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], event
+    );
 }
