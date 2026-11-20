@@ -5,7 +5,7 @@ use esp_hal_servo::Servo;
 use crate::config::SERVO_CONFIG_CH;
 use crate::failsafe;
 use crate::hardware::smooth;
-use crate::network::udp::STEERING_PS;
+use crate::network::udp::STEERING_WATCH;
 
 const TICK_MS: u64 = 20;
 /// Snap threshold for the smoothing loop, in degrees.
@@ -14,9 +14,10 @@ const SMOOTHING_DEAD_ZONE: f32 = 0.2;
 #[embassy_executor::task]
 pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
     let config = SERVO_CONFIG_CH.receive().await;
-    let mut subscriber = STEERING_PS
-        .subscriber()
-        .expect("STEERING_PS: subscriber already taken");
+
+    let mut steering = STEERING_WATCH
+        .receiver()
+        .expect("STEERING_WATCH: receiver already taken");
 
     let range_min = config.range[0];
     let range_max = config.range[1];
@@ -28,7 +29,7 @@ pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
     let mut ticker = Ticker::every(Duration::from_millis(TICK_MS));
 
     loop {
-        while let Some(raw) = subscriber.try_next_message_pure() {
+        while let Some(raw) = steering.try_changed() {
             target_angle = range_min + to_angle(raw) * (range_max - range_min);
         }
 

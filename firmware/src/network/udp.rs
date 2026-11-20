@@ -2,12 +2,12 @@ use defmt::{info, warn};
 use embassy_net::Stack;
 use embassy_net::udp::{PacketMetadata, UdpSocket};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::pubsub::PubSubChannel;
 use embassy_sync::signal::Signal;
+use embassy_sync::watch::Watch;
 use embassy_time::Timer;
 
-pub static THROTTLE_PS: PubSubChannel<CriticalSectionRawMutex, i8, 10, 1, 1> = PubSubChannel::new();
-pub static STEERING_PS: PubSubChannel<CriticalSectionRawMutex, i8, 10, 1, 1> = PubSubChannel::new();
+pub static THROTTLE_WATCH: Watch<CriticalSectionRawMutex, i8, 1> = Watch::new();
+pub static STEERING_WATCH: Watch<CriticalSectionRawMutex, i8, 1> = Watch::new();
 
 /// Notifies the failsafe task that the control stream is still alive.
 pub static PACKET_SIGNAL: Signal<CriticalSectionRawMutex, ()> = Signal::new();
@@ -54,8 +54,8 @@ pub async fn udp_task(stack: Stack<'static>) {
     socket.bind(8888).expect("Failed to bind UDP socket");
     info!("UDP socket bound to port 8888");
 
-    let throttle_publisher = THROTTLE_PS.immediate_publisher();
-    let steering_publisher = STEERING_PS.immediate_publisher();
+    let throttle_sender = THROTTLE_WATCH.sender();
+    let steering_sender = STEERING_WATCH.sender();
 
     loop {
         let mut rx_buf = [0u8; 64];
@@ -69,8 +69,8 @@ pub async fn udp_task(stack: Stack<'static>) {
                     let rx_pkt = Packet::from_bytes(buf);
                     info!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
 
-                    throttle_publisher.publish_immediate(rx_pkt.throttle);
-                    steering_publisher.publish_immediate(rx_pkt.steering);
+                    throttle_sender.send(rx_pkt.throttle);
+                    steering_sender.send(rx_pkt.steering);
                     PACKET_SIGNAL.signal(());
                 } else {
                     warn!(
