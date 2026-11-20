@@ -4,34 +4,28 @@ use leasehund::{DhcpConfigBuilder, DhcpServer};
 
 use crate::config::WIFI_CONFIG_WATCH;
 
-const SUBNET_MASK: Ipv4Addr = Ipv4Addr::new(255, 255, 255, 0);
-const IP_POOL_START: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 100);
-const IP_POOL_END: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 105);
-
-const MAX_CLIENTS: usize = 32; // maximum number of concurrent clients
-const MAX_DNS: usize = 1; // maximum number of DNS servers provided to clients
-
-const LEASE_TIME: u32 = 60; // seconds
-
 #[embassy_executor::task]
-pub async fn dhcp_server_task(stack: Stack<'static>) {
-    let mut config_rx = WIFI_CONFIG_WATCH
+pub async fn dhcp_task(stack: Stack<'static>) {
+    let wifi_config = WIFI_CONFIG_WATCH
         .receiver()
-        .expect("Failed to subscribe to the Wi-Fi config watch");
-    let wifi_config = config_rx.get().await;
+        .expect("Failed to subscribe to the Wi-Fi config watch")
+        .get()
+        .await;
+
     stack.wait_config_up().await;
 
+    let ip = wifi_config.ip;
+
+    // Calculate the client address (.1 -> .2)
+    let client_ip = Ipv4Addr::from_bits(ip.to_bits() + 1);
+
     let config = DhcpConfigBuilder::new()
-        .server_ip(wifi_config.ip)
-        .subnet_mask(SUBNET_MASK)
-        .router(wifi_config.ip)
-        .add_dns_server(wifi_config.ip)
-        .ip_pool(IP_POOL_START, IP_POOL_END)
-        .lease_time(LEASE_TIME)
+        .server_ip(ip)
+        .subnet_mask(Ipv4Addr::new(255, 255, 255, 0))
+        .ip_pool(client_ip, client_ip)
         .build();
 
-    let mut server = DhcpServer::<MAX_CLIENTS, MAX_DNS>::with_config(config);
+    let mut server = DhcpServer::<2, 0>::with_config(config);
 
-    // Run the DHCP server
-    server.run(stack).await.unwrap();
+    server.run(stack).await.expect("Failed to run DHCP server");
 }

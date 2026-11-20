@@ -215,7 +215,7 @@ async fn main(spawner: Spawner) -> ! {
 
     // Network
     spawner.spawn(net_task(runner).expect("Failed to spawn net_task"));
-    spawner.spawn(dhcp::dhcp_server_task(stack).expect("Failed to spawn dhcp_server_task"));
+    spawner.spawn(dhcp::dhcp_task(stack).expect("Failed to spawn dhcp_server_task"));
     spawner.spawn(udp::udp_task(stack).expect("Failed to spawn udp_task"));
     spawner.spawn(wifi::wifi_task(controller).expect("Failed to spawn wifi_task"));
 
