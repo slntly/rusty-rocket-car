@@ -20,7 +20,7 @@ use esp_println as _;
 use esp_hal::ledc::channel::ChannelIFace;
 use esp_hal::ledc::timer::TimerIFace;
 use esp_hal::ledc::{LSGlobalClkSource, Ledc, LowSpeed, channel, timer};
-use esp_hal_servo::{Servo, ServoConfig as SC};
+use esp_hal_servo::Servo;
 // Misc
 use core::net::Ipv4Addr;
 use static_cell::StaticCell;
@@ -133,7 +133,7 @@ async fn main(spawner: Spawner) -> ! {
 
     let servo = Servo::new(
         "steering",
-        SC::default_servo(
+        esp_hal_servo::ServoConfig::default_servo(
             timer::config::Duty::Duty14Bit,
             servo_config.max_angle,
             servo_config.speed,
