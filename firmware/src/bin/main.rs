@@ -6,7 +6,7 @@
 // Embassy
 use embassy_executor::Spawner;
 use embassy_net::{Ipv4Cidr, StackResources, StaticConfigV4};
-use embassy_time::{Duration, Timer};
+use embassy_time::Duration;
 // ESP-HAL
 use esp_hal::clock::CpuClock;
 use esp_hal::gpio::{DriveMode, Pin};
@@ -260,8 +260,7 @@ async fn main(spawner: Spawner) -> ! {
     );
     // ─────────────────────────────────────────────────────────────────────
 
-    // main() will wait indefinitely for other tasks to complete
-    loop {
-        Timer::after(Duration::from_secs(1)).await;
-    }
+    // At this point, the work of main() is complete, and it hands over control to the executor.
+    core::future::pending::<()>().await;
+    unreachable!()
 }
