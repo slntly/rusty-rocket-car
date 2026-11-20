@@ -2,7 +2,7 @@ use embassy_time::{Duration, Ticker};
 use esp_hal::ledc::LowSpeed;
 use esp_hal::ledc::channel::{Channel, ChannelIFace};
 
-use crate::config::{MOTOR_CONFIG_CH, MotorConfig};
+use crate::config::{MOTOR_CONFIG_WATCH, MotorConfig};
 use crate::failsafe;
 use crate::hardware::smooth;
 use crate::network::udp::THROTTLE_WATCH;
@@ -13,7 +13,10 @@ const SMOOTHING_DEAD_ZONE: f32 = 0.2;
 
 #[embassy_executor::task]
 pub async fn motor_task(in1: Channel<'static, LowSpeed>, in2: Channel<'static, LowSpeed>) {
-    let config = MOTOR_CONFIG_CH.receive().await;
+    let mut config_rx = MOTOR_CONFIG_WATCH
+        .receiver()
+        .expect("Failed to subscribe to the motor config watch");
+    let config = config_rx.get().await;
 
     let mut throttle = THROTTLE_WATCH
         .receiver()

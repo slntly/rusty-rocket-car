@@ -3,17 +3,19 @@
 
 use core::net::Ipv4Addr;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::channel::Channel;
 use embassy_sync::watch::Watch;
 use esp_hal::gpio::AnyPin;
 use static_cell::StaticCell;
 
-// The Wi-Fi config is consumed by both `wifi_task` and `dhcp_server_task`, so it
-// is broadcast through a `Watch` rather than handed to a single `Channel`
-// receiver (a channel message would be consumed by only one of them).
+// Configuration is handed to tasks through `Watch`, which delivers the latest
+// value to every receiver. This matters for the Wi-Fi config, consumed by both
+// `wifi_task` and `dhcp_server_task`, and keeps the distribution uniform
+// across all configs.
 pub static WIFI_CONFIG_WATCH: Watch<CriticalSectionRawMutex, &'static WiFiConfig, 2> = Watch::new();
-pub static SERVO_CONFIG_CH: Channel<CriticalSectionRawMutex, &ServoConfig, 1> = Channel::new();
-pub static MOTOR_CONFIG_CH: Channel<CriticalSectionRawMutex, &MotorConfig, 1> = Channel::new();
+pub static SERVO_CONFIG_WATCH: Watch<CriticalSectionRawMutex, &'static ServoConfig, 1> =
+    Watch::new();
+pub static MOTOR_CONFIG_WATCH: Watch<CriticalSectionRawMutex, &'static MotorConfig, 1> =
+    Watch::new();
 
 pub static WIFI_CONFIG_CELL: StaticCell<WiFiConfig> = StaticCell::new();
 pub static SERVO_CONFIG_CELL: StaticCell<ServoConfig> = StaticCell::new();

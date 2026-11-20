@@ -2,7 +2,7 @@ use embassy_time::{Duration, Ticker};
 use esp_hal::ledc::LowSpeed;
 use esp_hal_servo::Servo;
 
-use crate::config::SERVO_CONFIG_CH;
+use crate::config::SERVO_CONFIG_WATCH;
 use crate::failsafe;
 use crate::hardware::smooth;
 use crate::network::udp::STEERING_WATCH;
@@ -13,7 +13,10 @@ const SMOOTHING_DEAD_ZONE: f32 = 0.2;
 
 #[embassy_executor::task]
 pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
-    let config = SERVO_CONFIG_CH.receive().await;
+    let mut config_rx = SERVO_CONFIG_WATCH
+        .receiver()
+        .expect("Failed to subscribe to the servo config watch");
+    let config = config_rx.get().await;
 
     let mut steering = STEERING_WATCH
         .receiver()

@@ -27,7 +27,7 @@ use static_cell::StaticCell;
 
 // Config
 use rusty_rocket_car::config::{MOTOR_CONFIG_CELL, SERVO_CONFIG_CELL, WIFI_CONFIG_CELL};
-use rusty_rocket_car::config::{MOTOR_CONFIG_CH, SERVO_CONFIG_CH, WIFI_CONFIG_WATCH};
+use rusty_rocket_car::config::{MOTOR_CONFIG_WATCH, SERVO_CONFIG_WATCH, WIFI_CONFIG_WATCH};
 use rusty_rocket_car::config::{MotorConfig, ServoConfig, WiFiConfig};
 // Modules
 use rusty_rocket_car::failsafe;
@@ -204,8 +204,8 @@ async fn main(spawner: Spawner) -> ! {
     let motor_config = MOTOR_CONFIG_CELL.init(motor_config);
 
     WIFI_CONFIG_WATCH.sender().send(wifi_config);
-    SERVO_CONFIG_CH.send(servo_config).await;
-    MOTOR_CONFIG_CH.send(motor_config).await;
+    SERVO_CONFIG_WATCH.sender().send(servo_config);
+    MOTOR_CONFIG_WATCH.sender().send(motor_config);
     // ─────────────────────────────────────────────────────────────────────
 
     // ─── Tasks ───────────────────────────────────────────────────────────
