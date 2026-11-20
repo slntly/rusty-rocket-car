@@ -1,6 +1,7 @@
 use defmt::{info, warn};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
+use embassy_time::{Duration, Timer};
 use esp_radio::wifi::{
     Config, Ssid, WifiController,
     ap::{AccessPointConfig, EventInfo},
@@ -52,25 +53,29 @@ pub async fn wifi_task(mut controller: WifiController<'static>) {
         .expect("Failed to set max TX power");
 
     loop {
-        if let Ok(event) = controller
+        match controller
             .wait_for_access_point_connected_event_async()
             .await
         {
-            match event {
-                EventInfo::Connected(info) => wifi_event(info.mac, WiFiEvent::Connected).await,
-                EventInfo::Disconnected(info) => {
-                    wifi_event(info.mac, WiFiEvent::Disconnected).await
-                }
+            Ok(event) => wifi_event(event).await,
+            Err(e) => {
+                warn!("Failed to get Wi-Fi event: {:?}", e);
+                Timer::after(Duration::from_millis(100)).await;
             }
         }
     }
 }
 
-async fn wifi_event(mac: [u8; 6], event: WiFiEvent) {
-    WIFI_EVENT_CH.send(event).await;
+async fn wifi_event(event: EventInfo) {
+    let (wifi_event, mac) = match event {
+        EventInfo::Connected(info) => (WiFiEvent::Connected, info.mac),
+        EventInfo::Disconnected(info) => (WiFiEvent::Disconnected, info.mac),
+    };
+
+    WIFI_EVENT_CH.send(wifi_event).await;
 
     info!(
         "Device [{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}] {:?}",
-        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], event
+        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], wifi_event
     );
 }
