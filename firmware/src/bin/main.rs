@@ -12,9 +12,9 @@ use esp_hal::clock::CpuClock;
 use esp_hal::gpio::{DriveMode, Pin};
 use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
-use esp_radio::wifi::{Config, Interface, Ssid, WifiController, ap::AccessPointConfig};
+use esp_radio::wifi::{Interface, WifiController};
 // Logging
-use defmt::{error, info, warn};
+use defmt::{error, info};
 use esp_println as _;
 // LEDC & Servo
 use esp_hal::ledc::channel::ChannelIFace;
@@ -32,7 +32,7 @@ use rusty_rocket_car::config::{MotorConfig, ServoConfig, WiFiConfig};
 // Modules
 use rusty_rocket_car::failsafe;
 use rusty_rocket_car::hardware::{motor, servo};
-use rusty_rocket_car::network::{dhcp, net_task, udp, wifi_monitor};
+use rusty_rocket_car::network::{dhcp, net_task, udp, wifi};
 
 #[panic_handler]
 fn panic(panic_info: &core::panic::PanicInfo) -> ! {
@@ -177,39 +177,8 @@ async fn main(spawner: Spawner) -> ! {
     // ─────────────────────────────────────────────────────────────────────
 
     // ─── Wi-Fi & Network ─────────────────────────────────────────────────
-    let mut wifi_controller = WifiController::new(peripherals.WIFI, Default::default())
+    let controller = WifiController::new(peripherals.WIFI, Default::default())
         .expect("Failed to init Wi-Fi controller");
-
-    let ssid: Ssid = wifi_config.ssid.try_into().expect("Invalid SSID format");
-
-    let auth_config = if wifi_config.password.is_empty() {
-        warn!("No access point password has been set; an open access point will be created");
-        esp_radio::wifi::AuthenticationMethodConfig::Open
-    } else {
-        esp_radio::wifi::AuthenticationMethodConfig::Wpa2Personal(
-            wifi_config
-                .password
-                .try_into()
-                .expect("Invalid password format"),
-        )
-    };
-
-    let ap_config = AccessPointConfig::default()
-        .with_ssid(ssid)
-        .with_authentication(auth_config)
-        .with_channel(wifi_config.channel);
-
-    wifi_controller
-        .set_config(&Config::AccessPoint(ap_config))
-        .expect("Failed to set AP config");
-
-    // SuperMini boards have a notoriously poor antenna layout, so cap the TX
-    // power to keep Wi-Fi stable. Unit is 0.25 dBm; values above 34 are not
-    // recommended for these boards.
-    #[cfg(feature = "supermini")]
-    wifi_controller
-        .set_max_tx_power(34)
-        .expect("Failed to set max TX power");
 
     let device = Interface::access_point();
 
@@ -248,10 +217,7 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(net_task(runner).expect("Failed to spawn net_task"));
     spawner.spawn(dhcp::dhcp_server_task(stack).expect("Failed to spawn dhcp_server_task"));
     spawner.spawn(udp::udp_task(stack).expect("Failed to spawn udp_task"));
-    spawner.spawn(
-        wifi_monitor::wifi_monitor_task(wifi_controller)
-            .expect("Failed to spawn wifi_monitor_task"),
-    );
+    spawner.spawn(wifi::wifi_task(controller).expect("Failed to spawn wifi_task"));
 
     // Hardware
     spawner.spawn(servo::servo_task(servo).expect("Failed to spawn servo_task"));
