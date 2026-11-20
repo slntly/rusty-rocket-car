@@ -4,7 +4,7 @@ use embassy_sync::watch::Watch;
 use embassy_time::{Duration, Instant, Ticker};
 
 use crate::network::udp::PACKET_SIGNAL;
-use crate::network::wifi_monitor::{WIFI_EVENT_CH, WifiEvent};
+use crate::network::wifi::{WIFI_EVENT_CH, WiFiEvent};
 
 /// Interval at which the failsafe re-evaluates its inputs.
 const TICK_MS: u64 = 20;
@@ -36,7 +36,7 @@ pub async fn failsafe_task(packet_timeout: Duration) {
 
     loop {
         while let Ok(event) = wifi_events.try_receive() {
-            link_up = matches!(event, WifiEvent::Connected);
+            link_up = matches!(event, WiFiEvent::Connected);
 
             if !link_up {
                 last_packet = None;

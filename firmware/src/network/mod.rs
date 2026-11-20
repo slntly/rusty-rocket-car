@@ -1,7 +1,6 @@
 pub mod dhcp;
 pub mod udp;
 pub mod wifi;
-pub mod wifi_monitor;
 
 use esp_radio::wifi::Interface;
 
