@@ -190,12 +190,6 @@ async fn main(spawner: Spawner) -> ! {
 
     let resources = STACK_RESOURCES.init(StackResources::new());
     let (stack, runner) = embassy_net::new(device, net_config, resources, seed);
-
-    info!(
-        "AP started: `{}` (Ch: {})",
-        wifi_config.ssid, wifi_config.channel
-    );
-    info!("Static IP: {}", wifi_config.ip);
     // ─────────────────────────────────────────────────────────────────────
 
     // ─── Publish the runtime configuration for the tasks that consume it ─

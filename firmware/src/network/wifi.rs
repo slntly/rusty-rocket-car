@@ -55,6 +55,9 @@ pub async fn wifi_task(mut controller: WifiController<'static>) {
         .set_max_tx_power(34)
         .expect("Failed to set max TX power");
 
+    info!("AP started: `{}` (Ch: {})", config.ssid, config.channel);
+    info!("Static IP: {}", config.ip);
+
     loop {
         match controller
             .wait_for_access_point_connected_event_async()
