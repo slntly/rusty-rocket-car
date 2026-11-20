@@ -2,7 +2,7 @@ use core::net::Ipv4Addr;
 use embassy_net::Stack;
 use leasehund::{DhcpConfigBuilder, DhcpServer};
 
-use crate::config::WIFI_CONFIG_CH;
+use crate::config::WIFI_CONFIG_WATCH;
 
 const SUBNET_MASK: Ipv4Addr = Ipv4Addr::new(255, 255, 255, 0);
 const IP_POOL_START: Ipv4Addr = Ipv4Addr::new(192, 168, 4, 100);
@@ -15,7 +15,10 @@ const LEASE_TIME: u32 = 60; // seconds
 
 #[embassy_executor::task]
 pub async fn dhcp_server_task(stack: Stack<'static>) {
-    let wifi_config = WIFI_CONFIG_CH.receive().await;
+    let mut config_rx = WIFI_CONFIG_WATCH
+        .receiver()
+        .expect("Failed to subscribe to the Wi-Fi config watch");
+    let wifi_config = config_rx.get().await;
     stack.wait_config_up().await;
 
     let config = DhcpConfigBuilder::new()

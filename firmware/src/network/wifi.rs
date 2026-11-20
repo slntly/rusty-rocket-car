@@ -7,7 +7,7 @@ use esp_radio::wifi::{
     ap::{AccessPointConfig, EventInfo},
 };
 
-use crate::config::WIFI_CONFIG_CH;
+use crate::config::WIFI_CONFIG_WATCH;
 
 /// Wi-Fi connection events reported by the access point.
 #[derive(Debug, Clone, Copy, defmt::Format)]
@@ -21,7 +21,10 @@ pub static WIFI_EVENT_CH: Channel<CriticalSectionRawMutex, WiFiEvent, 4> = Chann
 
 #[embassy_executor::task]
 pub async fn wifi_task(mut controller: WifiController<'static>) {
-    let config = WIFI_CONFIG_CH.receive().await;
+    let mut config_rx = WIFI_CONFIG_WATCH
+        .receiver()
+        .expect("Failed to subscribe to the Wi-Fi config watch");
+    let config = config_rx.get().await;
 
     let ssid: Ssid = config.ssid.try_into().expect("Invalid SSID format");
 

@@ -4,10 +4,14 @@
 use core::net::Ipv4Addr;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
+use embassy_sync::watch::Watch;
 use esp_hal::gpio::AnyPin;
 use static_cell::StaticCell;
 
-pub static WIFI_CONFIG_CH: Channel<CriticalSectionRawMutex, &WiFiConfig, 1> = Channel::new();
+// The Wi-Fi config is consumed by both `wifi_task` and `dhcp_server_task`, so it
+// is broadcast through a `Watch` rather than handed to a single `Channel`
+// receiver (a channel message would be consumed by only one of them).
+pub static WIFI_CONFIG_WATCH: Watch<CriticalSectionRawMutex, &'static WiFiConfig, 2> = Watch::new();
 pub static SERVO_CONFIG_CH: Channel<CriticalSectionRawMutex, &ServoConfig, 1> = Channel::new();
 pub static MOTOR_CONFIG_CH: Channel<CriticalSectionRawMutex, &MotorConfig, 1> = Channel::new();
 
