@@ -122,10 +122,12 @@ async fn main(spawner: Spawner) -> ! {
     };
     // ─────────────────────────────────────────────────────────────────────
 
-    // ─── PWM, Servo & Motor ──────────────────────────────────────────────
+    // ─── LEDC ────────────────────────────────────────────────────────────
     let mut ledc = Ledc::new(peripherals.LEDC);
     ledc.set_global_slow_clock(LSGlobalClkSource::APBClk);
+    // ─────────────────────────────────────────────────────────────────────
 
+    // ─── Servo ───────────────────────────────────────────────────────────
     // Servo timer: 50 Hz with 14-bit duty resolution.
     let mut lstimer0 = ledc.timer::<LowSpeed>(timer::Number::Timer0);
     lstimer0
@@ -137,18 +139,6 @@ async fn main(spawner: Spawner) -> ! {
         .expect("Failed to configure servo LEDC timer");
 
     let lstimer0_static = SERVO_TIMER_CELL.init(lstimer0);
-
-    // Motor timer: 20 kHz with 10-bit duty resolution.
-    let mut lstimer1 = ledc.timer::<LowSpeed>(timer::Number::Timer1);
-    lstimer1
-        .configure(timer::config::Config {
-            duty: timer::config::Duty::Duty10Bit,
-            clock_source: timer::LSClockSource::APBClk,
-            frequency: Rate::from_hz(motor_config.pwm_freq),
-        })
-        .expect("Failed to configure motor LEDC timer");
-
-    let lstimer1_static = MOTOR_TIMER_CELL.init(lstimer1);
 
     let servo = Servo::new(
         "steering",
@@ -163,6 +153,20 @@ async fn main(spawner: Spawner) -> ! {
         pins.servo.take().expect("Servo pin already claimed"),
     )
     .expect("Failed to configure servo");
+    // ─────────────────────────────────────────────────────────────────────
+
+    // ─── Motor ───────────────────────────────────────────────────────────
+    // Motor timer: 20 kHz with 10-bit duty resolution.
+    let mut lstimer1 = ledc.timer::<LowSpeed>(timer::Number::Timer1);
+    lstimer1
+        .configure(timer::config::Config {
+            duty: timer::config::Duty::Duty10Bit,
+            clock_source: timer::LSClockSource::APBClk,
+            frequency: Rate::from_hz(motor_config.pwm_freq),
+        })
+        .expect("Failed to configure motor LEDC timer");
+
+    let lstimer1_static = MOTOR_TIMER_CELL.init(lstimer1);
 
     let mut motor_in1_pwm = ledc.channel(
         channel::Number::Channel1,
