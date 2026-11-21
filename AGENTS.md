@@ -132,10 +132,10 @@ firmware was flashed or exercised on hardware unless that actually happened.
 
 ## Git conventions
 
-This project follows [Conventional Commits](https://www.conventionalcommits.org/):
+This project follows [Conventional Commits](https://conventionalcommits.org):
 
 ```
-<type>(<scope>): <summary>
+<type>: <summary>
 
 <optional body>
 
@@ -145,38 +145,23 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 - **Types:** `feat`, `fix`, `refactor`, `docs`, `test`, `build`, `ci`, `perf`,
   `chore`. Use `feat` for user-visible capability, `fix` for corrected
   behavior, `refactor` for restructuring without behavior change.
-- **Scope:** use `firmware` for anything under `firmware/`. Historical commits
-  before the convention (`firmware: ...`) may exist; do not imitate them.
+- **Scope:** omit the scope (`<type>: <summary>`). Keep component or subsystem
+  context inside the summary when needed (e.g., `refactor: move `net_task` to
+  `network/mod.rs``). Historical commits with `(firmware)` or `firmware:`
+  exist; do not imitate them.
 - **Summary:** imperative mood, lowercase, no trailing period, aim for ≤ 72
-  characters. Wrap identifiers in backticks, e.g.
-  refactor(firmware): move `net_task` to `network/mod.rs`.
+  characters. Wrap identifiers in backticks.
 - **Body:** separate with a blank line. Explain *why* and any behavioral
   consequences; wrap around 72 columns. Use `-` bullets for several related
   points.
 - **One logical change per commit.** Do not mix formatting, renames, or
   dependency bumps with behavior changes.
-- **Breaking changes:** add `!` after the type/scope and a
+- **Breaking changes:** add `!` after the type (e.g., `feat!: ...`) and a
   `BREAKING CHANGE:` footer.
 - Do not add emoji, "Generated with ...", or tool attribution to commit
   messages.
 - Do not create commits, amend history, or rewrite branches unless explicitly
   asked. Never commit build artifacts (`target/` is ignored).
-
-Examples from this repository:
-
-```
-feat(firmware): add independent failsafe task
-
-The failsafe runs as a separate task and owns all stop decisions. It
-engages when the Wi-Fi link drops or when no control packet arrives for
-150 ms, and releases once packets are flowing again.
-```
-```
-refactor(firmware): replace the infinite loop in `main()` with `pending`
-
-Avoid waking up the executor every second just to go back to sleep,
-saving CPU cycles after initialization is complete.
-```
 
 ## Working agreements
 
