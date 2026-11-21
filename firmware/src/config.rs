@@ -29,9 +29,6 @@ pub struct WiFiConfig {
 }
 
 pub struct ServoConfig {
-    /// `None` once the pin has been claimed during hardware initialization;
-    /// the config is then shared with the servo task.
-    pub pin: Option<AnyPin<'static>>,
     pub max_angle: f32,
     pub range: [f32; 2],
     pub speed: f32,
@@ -40,12 +37,21 @@ pub struct ServoConfig {
 }
 
 pub struct MotorConfig {
-    /// `None` once the pins have been claimed during hardware initialization;
-    /// the config is then shared with the motor task.
-    pub in1: Option<AnyPin<'static>>,
-    pub in2: Option<AnyPin<'static>>,
     pub speed_range: [f32; 2],
     pub dead_zone: f32,
     pub smoothing_k: f32,
     pub pwm_freq: u32,
+}
+
+/// Hardware GPIO assignments.
+///
+/// Each field is wrapped in `Option` so pins can be taken
+/// (`.take()`) once during peripheral initialization.
+///
+/// Use `.degrade()` to erase the pin type and convert it into an `AnyPin`.
+pub struct Pins {
+    /// Steering servo PWM signal pin.
+    pub servo: Option<AnyPin<'static>>,
+    /// H-bridge motor driver PWM pins (`[IN1, IN2]`).
+    pub motor: [Option<AnyPin<'static>>; 2],
 }

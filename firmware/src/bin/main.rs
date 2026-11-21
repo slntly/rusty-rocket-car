@@ -28,7 +28,7 @@ use static_cell::StaticCell;
 // Config
 use rusty_rocket_car::config::{MOTOR_CONFIG_CELL, SERVO_CONFIG_CELL, WIFI_CONFIG_CELL};
 use rusty_rocket_car::config::{MOTOR_CONFIG_WATCH, SERVO_CONFIG_WATCH, WIFI_CONFIG_WATCH};
-use rusty_rocket_car::config::{MotorConfig, ServoConfig, WiFiConfig};
+use rusty_rocket_car::config::{MotorConfig, Pins, ServoConfig, WiFiConfig};
 // Modules
 use rusty_rocket_car::failsafe;
 use rusty_rocket_car::hardware::{motor, servo};
@@ -82,9 +82,7 @@ async fn main(spawner: Spawner) -> ! {
         channel: 6, // Wi-Fi channel
     };
 
-    let mut servo_config = ServoConfig {
-        // use `degrade()` to convert `GPIOx` into `AnyPin`.
-        pin: Some(peripherals.GPIO2.degrade()),
+    let servo_config = ServoConfig {
         max_angle: 180.0,    // the maximum angle to which a servo can rotate
         range: [0.0, 180.0], // [min, max] usable steering range in degrees
         speed: 60.0,         // deg/s
@@ -92,14 +90,35 @@ async fn main(spawner: Spawner) -> ! {
         pwm_freq: 50,        // Hz
     };
 
-    let mut motor_config = MotorConfig {
-        // use `degrade` to convert `GPIOx` into `AnyPin`.
-        in1: Some(peripherals.GPIO3.degrade()),
-        in2: Some(peripherals.GPIO4.degrade()),
+    let motor_config = MotorConfig {
         speed_range: [10.0, 100.0], // [min, max]
         dead_zone: 3.0,             // % throttle ignored around neutral
         smoothing_k: 0.2,           // 1.0 — instant, 0.1 — very smooth
         pwm_freq: 20_000,           // Hz
+    };
+    // ─────────────────────────────────────────────────────────────────────
+
+    // ─── Pins ────────────────────────────────────────────────────────────
+    // Modern chips (ESP32-C2, C3, C6, S2, S3): GPIO4, GPIO5, GPIO6 are adjacent
+    // on most DevKits and SuperMini boards and have no boot-time side effects.
+    #[cfg(not(feature = "esp32"))]
+    let mut pins = Pins {
+        servo: Some(peripherals.GPIO4.degrade()),
+        motor: [
+            Some(peripherals.GPIO5.degrade()),
+            Some(peripherals.GPIO6.degrade()),
+        ],
+    };
+
+    // Classic ESP32 (WROOM / DevKit V1): GPIO13, GPIO14, GPIO27 sit next to each
+    // other on the board header and safely bypass GPIO12 (flash voltage strapping).
+    #[cfg(feature = "esp32")]
+    let mut pins = Pins {
+        servo: Some(peripherals.GPIO13.degrade()),
+        motor: [
+            Some(peripherals.GPIO14.degrade()),
+            Some(peripherals.GPIO27.degrade()),
+        ],
     };
     // ─────────────────────────────────────────────────────────────────────
 
@@ -141,16 +160,13 @@ async fn main(spawner: Spawner) -> ! {
         &mut ledc,
         lstimer0_static,
         channel::Number::Channel0,
-        servo_config.pin.take().expect("Servo pin already claimed"),
+        pins.servo.take().expect("Servo pin already claimed"),
     )
     .expect("Failed to configure servo");
 
     let mut motor_in1_pwm = ledc.channel(
         channel::Number::Channel1,
-        motor_config
-            .in1
-            .take()
-            .expect("Motor IN1 pin already claimed"),
+        pins.motor[0].take().expect("Motor IN1 pin already claimed"),
     );
     motor_in1_pwm
         .configure(channel::config::Config {
@@ -162,10 +178,7 @@ async fn main(spawner: Spawner) -> ! {
 
     let mut motor_in2_pwm = ledc.channel(
         channel::Number::Channel2,
-        motor_config
-            .in2
-            .take()
-            .expect("Motor IN2 pin already claimed"),
+        pins.motor[1].take().expect("Motor IN2 pin already claimed"),
     );
     motor_in2_pwm
         .configure(channel::config::Config {
