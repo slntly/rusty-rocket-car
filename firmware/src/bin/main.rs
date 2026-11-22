@@ -77,24 +77,24 @@ async fn main(spawner: Spawner) -> ! {
     // ─── Configuration ───────────────────────────────────────────────────
     let wifi_config = WiFiConfig {
         ssid: "Rusty Rocket Car",
-        password: "", // If password not specified, an open AP will be created.
+        password: "",
         ip: Ipv4Addr::new(192, 168, 4, 1),
-        channel: 6, // Wi-Fi channel
+        channel: 6,
     };
 
     let servo_config = ServoConfig {
-        max_angle: 180.0,    // the maximum angle to which a servo can rotate
-        range: [0.0, 180.0], // [min, max] usable steering range in degrees
-        speed: 60.0,         // deg/s
-        smoothing_k: 0.2,    // 1.0 — instant, 0.1 — very smooth
-        pwm_freq: 50,        // Hz
+        max_angle: 180.0,
+        range: [0.0, 180.0],
+        speed: 60.0,
+        smoothing_k: 0.2,
+        pwm_freq: 50,
     };
 
     let motor_config = MotorConfig {
-        speed_range: [10.0, 100.0], // [min, max]
-        dead_zone: 3.0,             // % throttle ignored around neutral
-        smoothing_k: 0.2,           // 1.0 — instant, 0.1 — very smooth
-        pwm_freq: 20_000,           // Hz
+        speed_range: [10.0, 100.0],
+        dead_zone: 3.0,
+        smoothing_k: 0.2,
+        pwm_freq: 20_000,
     };
     // ─────────────────────────────────────────────────────────────────────
 
