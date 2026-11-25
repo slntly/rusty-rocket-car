@@ -26,13 +26,13 @@ use core::net::Ipv4Addr;
 use static_cell::StaticCell;
 
 // Config
-use rusty_rocket_car::config::{MOTOR_CONFIG_CELL, SERVO_CONFIG_CELL, WIFI_CONFIG_CELL};
-use rusty_rocket_car::config::{MOTOR_CONFIG_WATCH, SERVO_CONFIG_WATCH, WIFI_CONFIG_WATCH};
-use rusty_rocket_car::config::{MotorConfig, Pins, ServoConfig, WiFiConfig};
+use rrc_firmware::config::{MOTOR_CONFIG_CELL, SERVO_CONFIG_CELL, WIFI_CONFIG_CELL};
+use rrc_firmware::config::{MOTOR_CONFIG_WATCH, SERVO_CONFIG_WATCH, WIFI_CONFIG_WATCH};
+use rrc_firmware::config::{MotorConfig, Pins, ServoConfig, WiFiConfig};
 // Modules
-use rusty_rocket_car::failsafe;
-use rusty_rocket_car::hardware::{motor, servo};
-use rusty_rocket_car::network::{dhcp, net_task, udp, wifi};
+use rrc_firmware::failsafe;
+use rrc_firmware::hardware::{motor, servo};
+use rrc_firmware::network::{dhcp, net_task, udp, wifi};
 
 #[panic_handler]
 fn panic(panic_info: &core::panic::PanicInfo) -> ! {

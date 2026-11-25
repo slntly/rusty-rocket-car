@@ -1,11 +1,11 @@
 [package]
 edition      = "2024"
-name         = "rusty-rocket-car"
+name         = "rrc-firmware"
 rust-version = "1.95"
 version      = "0.1.0"
 
 [[bin]]
-name = "rusty-rocket-car"
+name = "rrc-firmware"
 path = "./src/bin/main.rs"
 
 [dependencies]

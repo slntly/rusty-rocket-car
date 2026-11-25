@@ -20,7 +20,7 @@ independent failsafe task.
 
 ## Build, flash, monitor
 
-All commands below run in `firmware/`.
+All commands below run in `rrc-firmware/`.
 
 The default feature is `esp32c3`, so the simple commands work out of the box:
 
