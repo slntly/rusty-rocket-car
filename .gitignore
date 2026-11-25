@@ -1,0 +1,14 @@
+# Editors, IDEs
+.vscode/
+.idea/
+.zed/
+.cursor/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS system files
+.DS_Store
+Thumbs.db
