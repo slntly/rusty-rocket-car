@@ -1,39 +1,33 @@
 # AGENTS.md
 
-Guidance for AI agents and contributors working on **Rusty Rocket Car** — a
-`no_std` Rust firmware for an ESP32-based RC car.
+Guidance for AI agents and contributors working on **Rusty Rocket Car** — an
+ESP32-based RC car project consisting of a `no_std` Rust firmware
+(`rrc-firmware/`) and a Flutter mobile controller (`rrc-app/`).
 
-The car exposes a Wi-Fi access point, hands out addresses over DHCP, and accepts
-a small UDP control protocol. Steering is driven by a servo and throttle by an
-H-bridge motor; both outputs are smoothed and are forced to safe values by an
-independent failsafe task.
+The car exposes a Wi-Fi access point (`192.168.4.1`), hands out addresses over
+DHCP, and accepts a small UDP control protocol. Steering is driven by a servo
+and throttle by an H-bridge motor; both outputs are smoothed and are forced to
+safe values by an independent failsafe task.
 
 ## Prerequisites
 
 - Rust **1.95+** (the toolchain file pins stable and installs `rust-src`).
-- [`espflash`](https://github.com/esp-rs/espflash) 4.x for flashing/monitoring.
+- [`espflash`](https://github.com) 4.x for flashing/monitoring.
 - RISC-V targets:
   `rustup target add riscv32imc-unknown-none-elf riscv32imac-unknown-none-elf`.
 - For Xtensa chips (ESP32, ESP32-S2, ESP32-S3), the `esp` toolchain and the
   Xtensa GCC toolchain (`espup install`, then source `export-esp.sh`) are
   required. Invoke Cargo with `+esp` for those targets.
+- Flutter SDK (Dart `^3.14.0`) for `rrc-app/`.
 
 ## Build, flash, monitor
 
+### Firmware (`rrc-firmware/`)
+
 All commands below run in `rrc-firmware/`.
 
-The default feature is `esp32c3`, so the simple commands work out of the box:
-
-```sh
-cargo build
-cargo run        # flashes and opens the defmt monitor via the espflash runner
-cargo clippy
-cargo fmt --check
-```
-
-Chip selection uses one Cargo feature **plus** a matching target triple. Always
-add `--no-default-features` when selecting a chip other than `esp32c3`,
-otherwise two chip features are enabled and `build.rs` panics:
+No chip feature is enabled by default. Always pass exactly one chip feature
+**plus** its matching target triple (otherwise `build.rs` panics):
 
 | Chip feature | Target triple                 | Toolchain |
 | ------------ | ----------------------------- | --------- |
@@ -47,16 +41,18 @@ otherwise two chip features are enabled and `build.rs` panics:
 Examples:
 
 ```sh
-# ESP32-C6 (RISC-V, imac target must be passed explicitly)
-cargo build --no-default-features --features esp32c6 \
-  --target riscv32imac-unknown-none-elf
+# ESP32-C3 (RISC-V)
+cargo build --features esp32c3 --target riscv32imc-unknown-none-elf
+cargo run --features esp32c3 --target riscv32imc-unknown-none-elf # flashes & opens defmt monitor
+
+# ESP32-C3 SuperMini (caps Wi-Fi TX power)
+cargo run --features esp32c3,supermini --target riscv32imc-unknown-none-elf
+
+# ESP32-C6 (RISC-V)
+cargo build --features esp32c6 --target riscv32imac-unknown-none-elf
 
 # ESP32-S3 (Xtensa)
-cargo +esp build --no-default-features --features esp32s3 \
-  --target xtensa-esp32s3-none-elf
-
-# SuperMini boards: cap Wi-Fi TX power as well
-cargo run --features esp32c3,supermini
+cargo +esp build --features esp32s3 --target xtensa-esp32s3-none-elf
 ```
 
 Unsupported chips: ESP32-C5, ESP32-C61 and ESP32-S31 (no LEDC driver in
@@ -66,15 +62,31 @@ feature list or the `build.rs` validation without checking the HAL first.
 `DEFMT_LOG` (default `info`) and other user/runtime settings belong in
 `.cargo/esp-config.toml`; compilation settings belong in `.cargo/config.toml`.
 
+### Mobile App (`rrc-app/`)
+
+All commands below run in `rrc-app/`.
+
+```sh
+flutter pub get
+flutter run
+flutter build apk
+```
+
 ## Verification checklist
 
 Before handing work back, run the narrowest set that covers the change:
 
-```sh
-cargo fmt --check
-cargo clippy --target <target> --no-default-features --features <chip>
-cargo build --target <target> --no-default-features --features <chip>
-```
+- **Firmware (`rrc-firmware/`):**
+  ```sh
+  cargo fmt --check
+  cargo clippy --features <chip> --target <target>
+  cargo build --features <chip> --target <target>
+  ```
+- **Mobile App (`rrc-app/`):**
+  ```sh
+  dart format --output=none --set-exit-if-changed .
+  flutter analyze
+  ```
 
 There are currently no host tests and no CI configuration. Do not claim that
 firmware was flashed or exercised on hardware unless that actually happened.
@@ -119,9 +131,9 @@ firmware was flashed or exercised on hardware unless that actually happened.
   log recoverable errors and continue (optionally with a short backoff) rather
   than panicking.
 - Control math uses `f32` and explicit `.clamp(...)` where values leave the
-  packet or hardware range. The wire protocol is two bytes (throttle,
-  steering), offset-binary with `^ 0x80`, sent to UDP port 8888; `Packet` is
-  `#[repr(C)]` and `defmt::Format`.
+  packet or hardware range. The wire protocol is two signed bytes (`int8` in
+  range `[-100, 100]` for throttle, steering), sent to `192.168.4.1:8888` over
+  UDP; `Packet` is `#[repr(C)]` and `defmt::Format`.
 - Driver tasks tick every 20 ms (`TICK_MS`) and share the `hardware::smooth()`
   helper. Keep these timings consistent unless the change is intentional.
 - `main.rs` sets `#![deny(clippy::mem_forget)]` and
@@ -133,14 +145,6 @@ firmware was flashed or exercised on hardware unless that actually happened.
 ## Git conventions
 
 This project follows [Conventional Commits](https://conventionalcommits.org):
-
-```
-<type>: <summary>
-
-<optional body>
-
-<optional footers>
-```
 
 - **Types:** `feat`, `fix`, `refactor`, `docs`, `test`, `build`, `ci`, `perf`,
   `chore`. Use `feat` for user-visible capability, `fix` for corrected
@@ -169,7 +173,8 @@ This project follows [Conventional Commits](https://conventionalcommits.org):
 - Preserve the existing module boundaries and task ownership model. New
   hardware or network behavior generally belongs in a dedicated task plus a
   channel/signal in `config.rs`, not in `main()`.
-- Do not edit `Cargo.lock` by hand; let Cargo update it.
+- Do not edit `Cargo.lock` or `pubspec.lock` by hand; let Cargo and Flutter
+  update them.
 - Keep `LICENSE` intact.
 - If you add build or flashing documentation, update `README.md`
   rather than duplicating everything here.
