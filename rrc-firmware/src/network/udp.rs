@@ -23,11 +23,14 @@ impl Packet {
     pub const SIZE: usize = 2;
 
     #[inline]
-    pub fn from_bytes(bytes: [u8; Self::SIZE]) -> Self {
-        Self {
+    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != Self::SIZE {
+            return None;
+        }
+        Some(Self {
             throttle: (bytes[0] as i8).clamp(-100, 100),
             steering: (bytes[1] as i8).clamp(-100, 100),
-        }
+        })
     }
 }
 
@@ -52,29 +55,26 @@ pub async fn udp_task(stack: Stack<'static>) {
     let throttle_sender = THROTTLE_WATCH.sender();
     let steering_sender = STEERING_WATCH.sender();
 
-    loop {
-        let mut rx_buf = [0u8; 64];
+    let mut rx_buf = [0u8; 64];
 
+    loop {
         match socket.recv_from(&mut rx_buf).await {
             Ok((len, src_meta)) => {
-                if len == Packet::SIZE {
-                    let mut buf = [0u8; Packet::SIZE];
-                    buf.copy_from_slice(&rx_buf[..Packet::SIZE]);
-
-                    let rx_pkt = Packet::from_bytes(buf);
-                    info!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
-
-                    throttle_sender.send(rx_pkt.throttle);
-                    steering_sender.send(rx_pkt.steering);
-                    PACKET_SIGNAL.signal(());
-                } else {
+                let Some(rx_pkt) = Packet::from_slice(&rx_buf[..len]) else {
                     warn!(
                         "Unexpected packet size from {}: {} (expected {})",
                         src_meta.endpoint,
                         len,
                         Packet::SIZE
                     );
-                }
+                    continue;
+                };
+
+                info!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
+
+                throttle_sender.send(rx_pkt.throttle);
+                steering_sender.send(rx_pkt.steering);
+                PACKET_SIGNAL.signal(());
             }
             Err(e) => {
                 warn!("RX error: {:?}", e);
