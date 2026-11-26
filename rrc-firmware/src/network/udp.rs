@@ -25,14 +25,9 @@ impl Packet {
     #[inline]
     pub fn from_bytes(bytes: [u8; Self::SIZE]) -> Self {
         Self {
-            throttle: (bytes[0] ^ 0x80) as i8,
-            steering: (bytes[1] ^ 0x80) as i8,
+            throttle: (bytes[0] as i8).clamp(-100, 100),
+            steering: (bytes[1] as i8).clamp(-100, 100),
         }
-    }
-
-    #[inline]
-    pub fn to_bytes(&self) -> [u8; Self::SIZE] {
-        [(self.throttle as u8) ^ 0x80, (self.steering as u8) ^ 0x80]
     }
 }
 

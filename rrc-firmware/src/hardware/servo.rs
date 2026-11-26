@@ -55,7 +55,9 @@ pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
     }
 }
 
+/// Maps the signed steering value (`-100..=100`) to `[0.0, 1.0]`,
+/// with `0` centered at `0.5`.
 #[inline]
 fn to_angle(val: i8) -> f32 {
-    (val as f32 + 128.0) / 255.0
+    ((val as f32 + 100.0) / 200.0).clamp(0.0, 1.0)
 }

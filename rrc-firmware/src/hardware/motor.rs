@@ -52,11 +52,11 @@ pub async fn motor_task(in1: Channel<'static, LowSpeed>, in2: Channel<'static, L
     }
 }
 
-/// Maps the signed throttle byte to a signed percentage of the motor's
-/// maximum speed (`-max_speed..=max_speed`).
+/// Maps the signed throttle value (`-100..=100`) to a signed percentage of
+/// the motor's maximum speed (`-max_speed..=max_speed`).
 #[inline]
 fn to_throttle(val: i8, max_speed: f32) -> f32 {
-    (val as f32 / i8::MAX as f32).clamp(-1.0, 1.0) * max_speed
+    (val as f32 / 100.0).clamp(-1.0, 1.0) * max_speed
 }
 
 /// Drives an H-bridge in sign-magnitude mode: one input receives the PWM
