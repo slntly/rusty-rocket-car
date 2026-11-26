@@ -2,6 +2,8 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'screens/control_screen.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([
@@ -38,7 +40,7 @@ class MainApp extends StatelessWidget {
                 brightness: Brightness.dark,
               ),
         ),
-        home: const Scaffold(body: Center(child: Text('Hello World!'))),
+        home: const ControlScreen(),
       ),
     );
   }
