@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../services/udp_sender.dart';
 import '../widgets/stick.dart';
 
 class ControlScreen extends StatefulWidget {
@@ -10,8 +11,19 @@ class ControlScreen extends StatefulWidget {
 }
 
 class _ControlScreenState extends State<ControlScreen> {
-  int _steering = 0;
-  int _throttle = 0;
+  final _udp = UdpSender();
+
+  @override
+  void initState() {
+    super.initState();
+    _udp.start();
+  }
+
+  @override
+  void dispose() {
+    _udp.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,8 +44,8 @@ class _ControlScreenState extends State<ControlScreen> {
                   width: len,
                   height: hitBox,
                   child: Stick(
-                    value: _steering,
-                    onChanged: (v) => setState(() => _steering = v),
+                    value: _udp.steering,
+                    onChanged: (v) => setState(() => _udp.steering = v),
                   ),
                 ),
                 Padding(
@@ -44,8 +56,8 @@ class _ControlScreenState extends State<ControlScreen> {
                     child: RotatedBox(
                       quarterTurns: -1,
                       child: Stick(
-                        value: _throttle,
-                        onChanged: (v) => setState(() => _throttle = v),
+                        value: _udp.throttle,
+                        onChanged: (v) => setState(() => _udp.throttle = v),
                       ),
                     ),
                   ),
