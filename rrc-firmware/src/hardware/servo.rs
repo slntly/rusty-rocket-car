@@ -33,7 +33,7 @@ pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
 
     loop {
         while let Some(raw) = steering.try_changed() {
-            target_angle = range_min + to_angle(raw) * (range_max - range_min);
+            target_angle = to_angle(raw, range_min, range_max);
         }
 
         // While the failsafe is engaged, ease towards the neutral center.
@@ -55,9 +55,13 @@ pub async fn servo_task(mut servo: Servo<'static, LowSpeed>) {
     }
 }
 
-/// Maps the signed steering value (`-100..=100`) to `[0.0, 1.0]`,
-/// with `0` centered at `0.5`.
+/// Maps the signed steering value (`-100..=100`) to a servo angle in degrees
+/// within `range_min..=range_max`, with `0` at the midpoint.
 #[inline]
-fn to_angle(val: i8) -> f32 {
-    ((val as f32 + 100.0) / 200.0).clamp(0.0, 1.0)
+fn to_angle(val: i8, range_min: f32, range_max: f32) -> f32 {
+    let center = (range_min + range_max) / 2.0;
+    let half_span = (range_max - range_min) / 2.0;
+    let normalized = (val as f32 / 100.0).clamp(-1.0, 1.0);
+
+    center + normalized * half_span
 }
