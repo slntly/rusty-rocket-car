@@ -20,16 +20,25 @@ pub struct Packet {
 }
 
 impl Packet {
-    pub const SIZE: usize = 2;
+    /// ASCII "RC", big-endian.
+    pub const MAGIC: u16 = 0x5243;
+    /// magic (2) + throttle (1) + steering (1)
+    pub const SIZE: usize = 4;
 
     #[inline]
     pub fn from_slice(bytes: &[u8]) -> Option<Self> {
         if bytes.len() != Self::SIZE {
             return None;
         }
+
+        let magic = u16::from_be_bytes([bytes[0], bytes[1]]);
+        if magic != Self::MAGIC {
+            return None;
+        }
+
         Some(Self {
-            throttle: (bytes[0] as i8).clamp(-100, 100),
-            steering: (bytes[1] as i8).clamp(-100, 100),
+            throttle: (bytes[2] as i8).clamp(-100, 100),
+            steering: (bytes[3] as i8).clamp(-100, 100),
         })
     }
 }
