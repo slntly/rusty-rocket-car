@@ -32,7 +32,15 @@ enum PacketError {
 impl Packet {
     /// ASCII "RC", big-endian.
     const MAGIC: u16 = 0x5243;
-    const SIZE: usize = mem::size_of_val(&Self::MAGIC) + mem::size_of::<Self>();
+
+    const HEADER_SIZE: usize = mem::size_of_val(&Self::MAGIC);
+    const PAYLOAD_SIZE: usize = mem::size_of::<Self>();
+
+    /// Full packet size
+    const SIZE: usize = Self::HEADER_SIZE + Self::PAYLOAD_SIZE;
+
+    /// Permissible values for throttle/steering.
+    const RANGE: core::ops::RangeInclusive<i8> = -100..=100;
 
     #[inline]
     fn from_slice(bytes: &[u8]) -> Result<Self, PacketError> {
@@ -46,14 +54,13 @@ impl Packet {
             return Err(PacketError::InvalidMagic(magic));
         }
 
-        let throttle = bytes[2] as i8;
-        let steering = bytes[3] as i8;
+        let offset = Self::HEADER_SIZE; // payload offset from the header
 
-        if !(-100..=100).contains(&throttle) || !(-100..=100).contains(&steering) {
-            return Err(PacketError::OutOfRange {
-                throttle: throttle,
-                steering: steering,
-            });
+        let throttle = bytes[offset + 0] as i8;
+        let steering = bytes[offset + 1] as i8;
+
+        if !Self::RANGE.contains(&throttle) || !Self::RANGE.contains(&steering) {
+            return Err(PacketError::OutOfRange { throttle, steering });
         }
 
         Ok(Self { throttle, steering })
