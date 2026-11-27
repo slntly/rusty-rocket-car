@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for the UDP control socket. The debug/profile manifests only
+         grant this for the Flutter tooling, so release builds need it here. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="RRC"
         android:name="${applicationName}"
