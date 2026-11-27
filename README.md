@@ -52,25 +52,28 @@ All firmware commands below are run from the `rrc-firmware/` directory.
 > build the firmware for a different board; otherwise, the build will fail because two 
 > boards — the ESP32-C3 and the one you selected — would be enabled simultaneously.
 
+ESP32-C3 (default):
 ```sh
-# ESP32-C3 (default):
 cargo run
 ```
+
+ESP32-C6:
 ```sh
-# ESP32-C6:
 cargo run --no-default-features --features esp32c6 --target riscv32imac-unknown-none-elf
 ```
+
+ESP32-S3:
 ```sh
-# ESP32-S3:
 cargo +esp run --no-default-features --features esp32s3 --target xtensa-esp32s3-none-elf
 ```
 
 > [!NOTE]
-> For compact SuperMini boards, enable the `supermini` feature to cap Wi-Fi TX power:
-> ```sh
-> # ESP32-C3 SuperMini
-> cargo run --no-default-features --features esp32c3,supermini --target riscv32imc-unknown-none-elf
-> ```
+> For compact SuperMini boards, enable the `supermini` feature to cap Wi-Fi TX power.
+
+ESP32-C3 SuperMini:
+```sh
+cargo run --no-default-features --features esp32c3,supermini --target riscv32imc-unknown-none-elf
+```
 
 > See [Supported Hardware](#supported-hardware) for other boards.
 
