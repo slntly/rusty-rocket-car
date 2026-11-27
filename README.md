@@ -78,12 +78,15 @@ Connect your phone to the car's Wi-Fi access point before launching the app. Bot
 
 ## Control Protocol
 
-The app sends **2-byte UDP packets** to **`192.168.4.1:8888`** at a 100 Hz rate (every 10 ms):
+The app sends **4-byte UDP packets** to **`192.168.4.1:8888`** at a 100 Hz rate (every 10 ms):
 
-| Byte | Channel | Range | Type |
+| Byte | Field | Value | Type |
 | :--- | :--- | :--- | :--- |
-| `0` | Throttle | `[-100, 100]` | Signed 8-bit integer (`int8`) |
-| `1` | Steering | `[-100, 100]` | Signed 8-bit integer (`int8`) |
+| `0`–`1` | Magic | `0x52 0x43` — ASCII `"RC"`, big-endian `0x5243` | `u16` |
+| `2` | Throttle | `[-100, 100]` | Signed 8-bit integer (`int8`) |
+| `3` | Steering | `[-100, 100]` | Signed 8-bit integer (`int8`) |
+
+Packets with a different length or magic are ignored by the firmware.
 
 ## Configuration
 
