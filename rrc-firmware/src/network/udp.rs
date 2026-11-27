@@ -22,9 +22,11 @@ struct Packet {
     steering: i8,
 }
 
+#[derive(Debug, defmt::Format)]
 enum PacketError {
     InvalidMagic(u16),
     InvalidSize(usize),
+    OutOfRange { throttle: i8, steering: i8 },
 }
 
 impl Packet {
@@ -44,10 +46,17 @@ impl Packet {
             return Err(PacketError::InvalidMagic(magic));
         }
 
-        Ok(Self {
-            throttle: (bytes[2] as i8).clamp(-100, 100),
-            steering: (bytes[3] as i8).clamp(-100, 100),
-        })
+        let throttle = bytes[2] as i8;
+        let steering = bytes[3] as i8;
+
+        if !(-100..=100).contains(&throttle) || !(-100..=100).contains(&steering) {
+            return Err(PacketError::OutOfRange {
+                throttle: throttle,
+                steering: steering,
+            });
+        }
+
+        Ok(Self { throttle, steering })
     }
 }
 
