@@ -1,3 +1,4 @@
+use core::mem;
 use defmt::{info, warn};
 use embassy_net::Stack;
 use embassy_net::udp::{PacketMetadata, UdpSocket};
@@ -29,8 +30,7 @@ enum PacketError {
 impl Packet {
     /// ASCII "RC", big-endian.
     const MAGIC: u16 = 0x5243;
-    /// magic (2) + throttle (1) + steering (1)
-    const SIZE: usize = 4;
+    const SIZE: usize = mem::size_of_val(&Self::MAGIC) + mem::size_of::<Self>();
 
     #[inline]
     fn from_slice(bytes: &[u8]) -> Result<Self, PacketError> {
