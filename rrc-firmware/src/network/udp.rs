@@ -67,6 +67,7 @@ pub async fn udp_task(stack: Stack<'static>) {
     let steering_sender = STEERING_WATCH.sender();
 
     let mut rx_buf = [0u8; 64];
+    let mut last_pkt: Option<Packet> = None;
 
     loop {
         match socket.recv_from(&mut rx_buf).await {
@@ -81,7 +82,12 @@ pub async fn udp_task(stack: Stack<'static>) {
                     continue;
                 };
 
-                info!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
+                // Log only changes to keep the monitor readable while the
+                // controller repeats the same command at a high rate.
+                if last_pkt != Some(rx_pkt) {
+                    info!("Received from {}: {:?}", src_meta.endpoint, rx_pkt);
+                    last_pkt = Some(rx_pkt);
+                }
 
                 throttle_sender.send(rx_pkt.throttle);
                 steering_sender.send(rx_pkt.steering);
