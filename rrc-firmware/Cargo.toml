@@ -62,7 +62,7 @@ esp-hal-servo = { version = "0.4.0", default-features = false }
 embassy-sync = "0.8.0"
 
 [features]
-default = []
+default = ["esp32c3"]
 
 # Chip selection. Enable exactly one of these features.
 esp32 = [

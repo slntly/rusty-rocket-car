@@ -45,21 +45,31 @@ The project consists of two parts:
 
 ### Flashing
 
-All firmware commands below are run from the `rrc-firmware/` directory. Always pass the chip feature along with its matching target triple:
+All firmware commands below are run from the `rrc-firmware/` directory.
+
+> [!WARNING]
+> Since the default board is the ESP32-C3, use `--no-default-features` if you wish to 
+> build the firmware for a different board; otherwise, the build will fail because two 
+> boards — the ESP32-C3 and the one you selected — would be enabled simultaneously.
 
 ```sh
-# ESP32-C6 (RISC-V):
-cargo run --features esp32c6 --target riscv32imac-unknown-none-elf
-
-# ESP32-S3 (Xtensa):
-cargo +esp run --features esp32s3 --target xtensa-esp32s3-none-elf
+# ESP32-C3 (default):
+cargo run
+```
+```sh
+# ESP32-C6:
+cargo run --no-default-features --features esp32c6 --target riscv32imac-unknown-none-elf
+```
+```sh
+# ESP32-S3:
+cargo +esp run --no-default-features --features esp32s3 --target xtensa-esp32s3-none-elf
 ```
 
 > [!NOTE]
 > For compact SuperMini boards, enable the `supermini` feature to cap Wi-Fi TX power:
 > ```sh
 > # ESP32-C3 SuperMini
-> cargo run --features esp32c3,supermini --target riscv32imc-unknown-none-elf
+> cargo run --no-default-features --features esp32c3,supermini --target riscv32imc-unknown-none-elf
 > ```
 
 > See [Supported Hardware](#supported-hardware) for other boards.
@@ -108,7 +118,7 @@ formatting and linting checks (and that the project builds cleanly):
 - **Firmware (`rrc-firmware/`):**
   ```sh
   cargo fmt --check
-  cargo clippy --features <chip> --target <target>
+  cargo clippy --no-default-features --features <chip> --target <target>
   ```
 - **Mobile App (`rrc-app/`):**
   ```sh
