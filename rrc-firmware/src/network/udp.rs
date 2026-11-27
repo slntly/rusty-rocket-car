@@ -12,21 +12,23 @@ pub static STEERING_WATCH: Watch<CriticalSectionRawMutex, i8, 1> = Watch::new();
 /// Notifies the failsafe task that the control stream is still alive.
 pub static PACKET_SIGNAL: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 
+const UDP_PORT: u16 = 8888;
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
-pub struct Packet {
-    pub throttle: i8,
-    pub steering: i8,
+struct Packet {
+    throttle: i8,
+    steering: i8,
 }
 
 impl Packet {
     /// ASCII "RC", big-endian.
-    pub const MAGIC: u16 = 0x5243;
+    const MAGIC: u16 = 0x5243;
     /// magic (2) + throttle (1) + steering (1)
-    pub const SIZE: usize = 4;
+    const SIZE: usize = 4;
 
     #[inline]
-    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
+    fn from_slice(bytes: &[u8]) -> Option<Self> {
         if bytes.len() != Self::SIZE {
             return None;
         }
@@ -58,7 +60,7 @@ pub async fn udp_task(stack: Stack<'static>) {
         &mut tx_buffer,
     );
 
-    socket.bind(8888).expect("Failed to bind UDP socket");
+    socket.bind(UDP_PORT).expect("Failed to bind UDP socket");
     info!("UDP socket bound to port 8888");
 
     let throttle_sender = THROTTLE_WATCH.sender();
