@@ -21,6 +21,11 @@ struct Packet {
     steering: i8,
 }
 
+enum PacketError {
+    InvalidMagic(u16),
+    InvalidSize(usize),
+}
+
 impl Packet {
     /// ASCII "RC", big-endian.
     const MAGIC: u16 = 0x5243;
@@ -28,17 +33,18 @@ impl Packet {
     const SIZE: usize = 4;
 
     #[inline]
-    fn from_slice(bytes: &[u8]) -> Option<Self> {
-        if bytes.len() != Self::SIZE {
-            return None;
+    fn from_slice(bytes: &[u8]) -> Result<Self, PacketError> {
+        let len = bytes.len();
+        if len != Self::SIZE {
+            return Err(PacketError::InvalidSize(len));
         }
 
         let magic = u16::from_be_bytes([bytes[0], bytes[1]]);
         if magic != Self::MAGIC {
-            return None;
+            return Err(PacketError::InvalidMagic(magic));
         }
 
-        Some(Self {
+        Ok(Self {
             throttle: (bytes[2] as i8).clamp(-100, 100),
             steering: (bytes[3] as i8).clamp(-100, 100),
         })
@@ -72,14 +78,12 @@ pub async fn udp_task(stack: Stack<'static>) {
     loop {
         match socket.recv_from(&mut rx_buf).await {
             Ok((len, src_meta)) => {
-                let Some(rx_pkt) = Packet::from_slice(&rx_buf[..len]) else {
-                    warn!(
-                        "Unexpected packet size from {}: {} (expected {})",
-                        src_meta.endpoint,
-                        len,
-                        Packet::SIZE
-                    );
-                    continue;
+                let rx_pkt = match Packet::from_slice(&rx_buf[..len]) {
+                    Ok(pkt) => pkt,
+                    Err(err) => {
+                        warn!("Invalid packet from {}: {:?}", src_meta.endpoint, err);
+                        continue;
+                    }
                 };
 
                 // Log only changes to keep the monitor readable while the
@@ -96,7 +100,6 @@ pub async fn udp_task(stack: Stack<'static>) {
             Err(e) => {
                 warn!("RX error: {:?}", e);
                 Timer::after_millis(10).await;
-                continue;
             }
         }
     }
